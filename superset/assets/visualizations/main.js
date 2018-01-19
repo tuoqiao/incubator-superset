@@ -31,7 +31,6 @@ export const VIZ_TYPES = {
   sunburst: 'sunburst',
   table: 'table',
   time_table: 'time_table',
-  time_pivot: 'time_pivot',
   treemap: 'treemap',
   country_map: 'country_map',
   word_cloud: 'word_cloud',
@@ -47,8 +46,6 @@ export const VIZ_TYPES = {
   deck_path: 'deck_path',
   deck_geojson: 'deck_geojson',
   deck_multi: 'deck_multi',
-  deck_arc: 'deck_arc',
-  deck_polygon: 'deck_polygon',
 };
 
 const vizMap = {
@@ -95,8 +92,6 @@ const vizMap = {
   [VIZ_TYPES.deck_hex]: deckglFactory,
   [VIZ_TYPES.deck_path]: deckglFactory,
   [VIZ_TYPES.deck_geojson]: deckglFactory,
-  [VIZ_TYPES.deck_arc]: deckglFactory,
-  [VIZ_TYPES.deck_polygon]: deckglFactory,
   [VIZ_TYPES.deck_multi]: require('./deckgl/multi.jsx'),
 };
 export default vizMap;

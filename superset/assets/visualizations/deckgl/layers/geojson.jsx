@@ -1,8 +1,6 @@
 import { GeoJsonLayer } from 'deck.gl';
-
-import * as common from './common';
 import { hexToRGB } from '../../../javascripts/modules/colors';
-import sandboxedEval from '../../../javascripts/modules/sandbox';
+
 
 const propertyMap = {
   fillColor: 'fillColor',
@@ -14,77 +12,36 @@ const propertyMap = {
   'stroke-width': 'strokeWidth',
 };
 
-const alterProps = (props, propOverrides) => {
-  const newProps = {};
-  Object.keys(props).forEach((k) => {
-    if (k in propertyMap) {
-      newProps[propertyMap[k]] = props[k];
-    } else {
-      newProps[k] = props[k];
-    }
-  });
-  if (typeof props.fillColor === 'string') {
-    newProps.fillColor = hexToRGB(p.fillColor);
-  }
-  if (typeof props.strokeColor === 'string') {
-    newProps.strokeColor = hexToRGB(p.strokeColor);
-  }
+const convertGeoJsonColorProps = (p, colors) => {
+  const obj = Object.assign(...Object.keys(p).map(k => ({
+    [(propertyMap[k]) ? propertyMap[k] : k]: p[k] })));
+
   return {
-    ...newProps,
-    ...propOverrides,
+    ...obj,
+    fillColor: (colors.fillColor[3] !== 0) ? colors.fillColor : hexToRGB(obj.fillColor),
+    strokeColor: (colors.strokeColor[3] !== 0) ? colors.strokeColor : hexToRGB(obj.strokeColor),
   };
 };
-let features;
-const recurseGeoJson = (node, propOverrides, jsFnMutator, extraProps) => {
-  if (node && node.features) {
-    node.features.forEach((obj) => {
-      recurseGeoJson(obj, propOverrides, jsFnMutator, node.extraProps || extraProps);
-    });
-  }
-  if (node && node.geometry) {
-    const newNode = {
-      ...node,
-      properties: alterProps(node.properties, propOverrides),
-    };
-    if (jsFnMutator) {
-      jsFnMutator(newNode);
-    }
-    if (!newNode.extraProps) {
-      newNode.extraProps = extraProps;
-    }
-    features.push(newNode);
-  }
-};
 
-export default function geoJsonLayer(formData, payload, slice) {
+export default function geoJsonLayer(formData, payload) {
   const fd = formData;
   const fc = fd.fill_color_picker;
   const sc = fd.stroke_color_picker;
-  const fillColor = [fc.r, fc.g, fc.b, 255 * fc.a];
-  const strokeColor = [sc.r, sc.g, sc.b, 255 * sc.a];
-  const propOverrides = {};
-  if (fillColor[3] > 0) {
-    propOverrides.fillColor = fillColor;
-  }
-  if (strokeColor[3] > 0) {
-    propOverrides.strokeColor = strokeColor;
-  }
+  const data = payload.data.geojson.features.map(d => ({
+    ...d,
+    properties: convertGeoJsonColorProps(
+      d.properties, {
+        fillColor: [fc.r, fc.g, fc.b, 255 * fc.a],
+        strokeColor: [sc.r, sc.g, sc.b, 255 * sc.a],
+      }),
+  }));
 
-  let jsFnMutator;
-  if (fd.js_datapoint_mutator) {
-    // Applying user defined data mutator if defined
-    jsFnMutator = sandboxedEval(fd.js_datapoint_mutator);
-  }
-
-  features = [];
-  recurseGeoJson(payload.data, propOverrides, jsFnMutator);
   return new GeoJsonLayer({
-    id: `geojson-layer-${fd.slice_id}`,
-    filled: fd.filled,
-    data: features,
-    stroked: fd.stroked,
-    extruded: fd.extruded,
+    id: `path-layer-${fd.slice_id}`,
+    data,
+    filled: true,
+    stroked: false,
+    extruded: true,
     pointRadiusScale: fd.point_radius_scale,
-    ...common.commonLayerProps(fd, slice),
   });
 }

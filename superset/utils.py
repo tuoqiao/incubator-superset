@@ -299,7 +299,7 @@ def base_json_conv(obj):
         return str(obj)
 
 
-def json_iso_dttm_ser(obj, pessimistic=False):
+def json_iso_dttm_ser(obj):
     """
     json serializer that deals with dates
 
@@ -317,19 +317,9 @@ def json_iso_dttm_ser(obj, pessimistic=False):
     elif isinstance(obj, time):
         obj = obj.isoformat()
     else:
-        if pessimistic:
-            return 'Unserializable [{}]'.format(type(obj))
-        else:
-            raise TypeError(
-                'Unserializable object {} of type {}'.format(obj, type(obj)))
+        raise TypeError(
+            'Unserializable object {} of type {}'.format(obj, type(obj)))
     return obj
-
-
-def pessimistic_json_iso_dttm_ser(obj):
-    """Proxy to call json_iso_dttm_ser in a pessimistic way
-
-    If one of object is not serializable to json, it will still succeed"""
-    return json_iso_dttm_ser(obj, pessimistic=True)
 
 
 def datetime_to_epoch(dttm):

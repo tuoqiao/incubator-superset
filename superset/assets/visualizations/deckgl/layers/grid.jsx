@@ -7,6 +7,7 @@ export default function getLayer(formData, payload) {
     ...d,
     color: [c.r, c.g, c.b, 255 * c.a],
   }));
+
   return new GridLayer({
     id: `grid-layer-${fd.slice_id}`,
     data,

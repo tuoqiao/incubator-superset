@@ -2,7 +2,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Mustache from 'mustache';
-import { Tooltip } from 'react-bootstrap';
 
 import { d3format } from '../modules/utils';
 import ChartBody from './ChartBody';
@@ -10,7 +9,6 @@ import Loading from '../components/Loading';
 import StackTraceMessage from '../components/StackTraceMessage';
 import visMap from '../../visualizations/main';
 import sandboxedEval from '../modules/sandbox';
-import './chart.css';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -51,7 +49,6 @@ const defaultProps = {
 class Chart extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = {};
     // these properties are used by visualizations
     this.annotationData = props.annotationData;
     this.containerId = props.containerId;
@@ -102,10 +99,6 @@ class Chart extends React.PureComponent {
     return this.props.getFilters();
   }
 
-  setTooltip(tooltip) {
-    this.setState({ tooltip });
-  }
-
   addFilter(col, vals, merge = true, refresh = true) {
     this.props.addFilter(col, vals, merge, refresh);
   }
@@ -147,26 +140,6 @@ class Chart extends React.PureComponent {
     return Mustache.render(s, context);
   }
 
-  renderTooltip() {
-    if (this.state.tooltip) {
-      /* eslint-disable react/no-danger */
-      return (
-        <Tooltip
-          className="chart-tooltip"
-          id="chart-tooltip"
-          placement="right"
-          positionTop={this.state.tooltip.y - 10}
-          positionLeft={this.state.tooltip.x + 30}
-          arrowOffsetTop={10}
-        >
-          <div dangerouslySetInnerHTML={{ __html: this.state.tooltip.content }} />
-        </Tooltip>
-      );
-      /* eslint-enable react/no-danger */
-    }
-    return null;
-  }
-
   renderViz() {
     const viz = visMap[this.props.vizType];
     const fd = this.props.formData;
@@ -187,10 +160,10 @@ class Chart extends React.PureComponent {
     const isLoading = this.props.chartStatus === 'loading';
     return (
       <div className={`token col-md-12 ${isLoading ? 'is-loading' : ''}`}>
-        {this.renderTooltip()}
         {isLoading &&
           <Loading size={25} />
         }
+
         {this.props.chartAlert &&
         <StackTraceMessage
           message={this.props.chartAlert}
