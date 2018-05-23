@@ -691,7 +691,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.get_dialect().identifier_preparer.quote
 
     def get_df(self, sql, schema):
-        sqls = [str(s).strip().strip(';') for s in sqlparse.parse(sql)]
+        sqls = [x.strip() for x in sql.strip().strip(';').split(';')]
         eng = self.get_sqla_engine(schema=schema)
 
         for i in range(len(sqls) - 1):
