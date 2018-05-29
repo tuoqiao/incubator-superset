@@ -110,6 +110,9 @@ class DatabaseModelTestCase(SupersetTestCase):
         main_db = self.get_main_database(db.session)
 
         if main_db.backend == 'mysql':
+            df = main_db.get_df('SELECT 1', None)
+            self.assertEquals(df.iat[0, 0], 1)
+
             df = main_db.get_df('SELECT 1;', None)
             self.assertEquals(df.iat[0, 0], 1)
 
@@ -119,6 +122,13 @@ class DatabaseModelTestCase(SupersetTestCase):
         if main_db.backend == 'mysql':
             df = main_db.get_df("USE superset; SELECT ';';", None)
             self.assertEquals(df.iat[0, 0], ';')
+
+            df = main_db.get_df('USE superset; SELECT 1', None)
+            self.assertEquals(df.iat[0, 0], 1)
+
+            df = main_db.get_df("USE superset; SELECT ';';", None)
+            self.assertEquals(df.iat[0, 0], ';')
+
 
 class SqlaTableModelTestCase(SupersetTestCase):
 
