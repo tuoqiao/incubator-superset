@@ -1,10 +1,4 @@
-# -*- coding: utf-8 -*-
 """Unit tests for Superset"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import csv
 import datetime
 import doctest
@@ -13,25 +7,27 @@ import json
 import logging
 import os
 import random
+import re
 import string
 import unittest
 
+import mock
 import pandas as pd
 import psycopg2
-from six import text_type
 import sqlalchemy as sqla
 
-from superset import dataframe, db, jinja_context, security_manager, sql_lab, utils
+from superset import dataframe, db, jinja_context, security_manager, sql_lab
 from superset.connectors.sqla.models import SqlaTable
+from superset.db_engine_specs import BaseEngineSpec
 from superset.models import core as models
 from superset.models.sql_lab import Query
+from superset.utils import core as utils
+from superset.utils.core import get_main_database
 from superset.views.core import DatabaseView
 from .base_tests import SupersetTestCase
 
 
 class CoreTests(SupersetTestCase):
-
-    requires_examples = True
 
     def __init__(self, *args, **kwargs):
         super(CoreTests, self).__init__(*args, **kwargs)
@@ -56,7 +52,7 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp(
             '/login/',
             data=dict(username='admin', password='general'))
-        self.assertIn('Welcome', resp)
+        self.assertNotIn('User confirmation needed', resp)
 
         resp = self.get_resp('/logout/', follow_redirects=True)
         self.assertIn('User confirmation needed', resp)
@@ -64,13 +60,7 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp(
             '/login/',
             data=dict(username='admin', password='wrongPassword'))
-        self.assertNotIn('Welcome', resp)
         self.assertIn('User confirmation needed', resp)
-
-    def test_welcome(self):
-        self.login()
-        resp = self.client.get('/superset/welcome')
-        assert 'Welcome' in resp.data.decode('utf-8')
 
     def test_slice_endpoint(self):
         self.login(username='admin')
@@ -269,8 +259,8 @@ class CoreTests(SupersetTestCase):
 
     def test_add_slice(self):
         self.login(username='admin')
-        # assert that /slicemodelview/add responds with 200
-        url = '/slicemodelview/add'
+        # assert that /chart/add responds with 200
+        url = '/chart/add'
         resp = self.client.get(url)
         self.assertEqual(resp.status_code, 200)
 
@@ -316,7 +306,7 @@ class CoreTests(SupersetTestCase):
 
     def test_testconn(self, username='admin'):
         self.login(username=username)
-        database = self.get_main_database(db.session)
+        database = get_main_database(db.session)
 
         # validate that the endpoint works with the password-masked sqlalchemy uri
         data = json.dumps({
@@ -345,7 +335,7 @@ class CoreTests(SupersetTestCase):
         assert response.headers['Content-Type'] == 'application/json'
 
     def test_custom_password_store(self):
-        database = self.get_main_database(db.session)
+        database = get_main_database(db.session)
         conn_pre = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
 
         def custom_password_store(uri):
@@ -363,13 +353,13 @@ class CoreTests(SupersetTestCase):
         # validate that sending a password-masked uri does not over-write the decrypted
         # uri
         self.login(username=username)
-        database = self.get_main_database(db.session)
+        database = get_main_database(db.session)
         sqlalchemy_uri_decrypted = database.sqlalchemy_uri_decrypted
         url = 'databaseview/edit/{}'.format(database.id)
         data = {k: database.__getattribute__(k) for k in DatabaseView.add_columns}
         data['sqlalchemy_uri'] = database.safe_sqlalchemy_uri()
         self.client.post(url, data=data)
-        database = self.get_main_database(db.session)
+        database = get_main_database(db.session)
         self.assertEqual(sqlalchemy_uri_decrypted, database.sqlalchemy_uri_decrypted)
 
     def test_warm_up_cache(self):
@@ -380,7 +370,7 @@ class CoreTests(SupersetTestCase):
 
         data = self.get_json_resp(
             '/superset/warm_up_cache?table_name=energy_usage&db_name=main')
-        assert len(data) == 4
+        assert len(data) > 0
 
     def test_shortner(self):
         self.login(username='admin')
@@ -393,7 +383,7 @@ class CoreTests(SupersetTestCase):
             'previous_viz_type=sankey'
         )
         resp = self.client.post('/r/shortner/', data=dict(data=data))
-        assert '?r=' in resp.data.decode('utf-8')
+        assert re.search(r'\/r\/[0-9]+', resp.data.decode('utf-8'))
 
     def test_kv(self):
         self.logout()
@@ -424,8 +414,8 @@ class CoreTests(SupersetTestCase):
 
     def test_gamma(self):
         self.login(username='gamma')
-        assert 'List Charts' in self.get_resp('/slicemodelview/list/')
-        assert 'List Dashboard' in self.get_resp('/dashboardmodelview/list/')
+        assert 'List Charts' in self.get_resp('/chart/list/')
+        assert 'List Dashboard' in self.get_resp('/dashboard/list/')
 
     def test_csv_endpoint(self):
         self.login('admin')
@@ -456,27 +446,27 @@ class CoreTests(SupersetTestCase):
 
     def test_extra_table_metadata(self):
         self.login('admin')
-        dbid = self.get_main_database(db.session).id
+        dbid = get_main_database(db.session).id
         self.get_json_resp(
             '/superset/extra_table_metadata/{dbid}/'
             'ab_permission_view/panoramix/'.format(**locals()))
 
     def test_process_template(self):
-        maindb = self.get_main_database(db.session)
+        maindb = get_main_database(db.session)
         sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
         tp = jinja_context.get_template_processor(database=maindb)
         rendered = tp.process_template(sql)
         self.assertEqual("SELECT '2017-01-01T00:00:00'", rendered)
 
     def test_get_template_kwarg(self):
-        maindb = self.get_main_database(db.session)
+        maindb = get_main_database(db.session)
         s = '{{ foo }}'
         tp = jinja_context.get_template_processor(database=maindb, foo='bar')
         rendered = tp.process_template(s)
         self.assertEqual('bar', rendered)
 
     def test_template_kwarg(self):
-        maindb = self.get_main_database(db.session)
+        maindb = get_main_database(db.session)
         s = '{{ foo }}'
         tp = jinja_context.get_template_processor(database=maindb)
         rendered = tp.process_template(s, foo='bar')
@@ -489,7 +479,7 @@ class CoreTests(SupersetTestCase):
         self.assertEqual(data['data'][0]['test'], '2017-01-01T00:00:00')
 
     def test_table_metadata(self):
-        maindb = self.get_main_database(db.session)
+        maindb = get_main_database(db.session)
         backend = maindb.backend
         data = self.get_json_resp(
             '/superset/table/{}/ab_user/null/'.format(maindb.id))
@@ -642,8 +632,7 @@ class CoreTests(SupersetTestCase):
             (datetime.datetime(2017, 11, 18, 21, 53, 0, 219225, tzinfo=tz),),
             (datetime.datetime(2017, 11, 18, 22, 6, 30, 61810, tzinfo=tz),),
         ]
-        df = dataframe.SupersetDataFrame(pd.DataFrame(data=list(data),
-                                                      columns=['data']))
+        df = dataframe.SupersetDataFrame(list(data), [['data']], BaseEngineSpec)
         data = df.data
         self.assertDictEqual(
             data[0],
@@ -658,7 +647,7 @@ class CoreTests(SupersetTestCase):
         clean_query = "SELECT '/* val 1 */' as c1, '-- val 2' as c2 FROM tbl"
         commented_query = '/* comment 1 */' + clean_query + '-- comment 2'
         table = SqlaTable(sql=commented_query)
-        rendered_query = text_type(table.get_from_clause())
+        rendered_query = str(table.get_from_clause())
         self.assertEqual(clean_query, rendered_query)
 
     def test_slice_payload_no_data(self):
@@ -700,6 +689,35 @@ class CoreTests(SupersetTestCase):
         data = self.get_json_resp(url)
         self.assertEqual(data['status'], None)
         self.assertEqual(data['error'], None)
+
+    @mock.patch('superset.security.SupersetSecurityManager.schemas_accessible_by_user')
+    @mock.patch('superset.security.SupersetSecurityManager.database_access')
+    @mock.patch('superset.security.SupersetSecurityManager.all_datasource_access')
+    def test_schemas_access_for_csv_upload_endpoint(self,
+                                                    mock_all_datasource_access,
+                                                    mock_database_access,
+                                                    mock_schemas_accessible):
+        mock_all_datasource_access.return_value = False
+        mock_database_access.return_value = False
+        mock_schemas_accessible.return_value = ['this_schema_is_allowed_too']
+        database_name = 'fake_db_100'
+        db_id = 100
+        extra = """{
+            "schemas_allowed_for_csv_upload":
+            ["this_schema_is_allowed", "this_schema_is_allowed_too"]
+        }"""
+
+        self.login(username='admin')
+        dbobj = self.get_or_create(
+            cls=models.Database,
+            criteria={'database_name': database_name},
+            session=db.session,
+            id=db_id,
+            extra=extra)
+        data = self.get_json_resp(
+            url='/superset/schema_access_for_csv_upload?db_id={db_id}'
+                .format(db_id=dbobj.id))
+        assert data == ['this_schema_is_allowed_too']
 
     def test_select_star(self):
         self.login(username='admin')

@@ -1,4 +1,3 @@
-/* eslint no-undef: 2 */
 import React from 'react';
 import PropTypes from 'prop-types';
 import Select from '../../../components/AsyncSelect';
@@ -33,8 +32,15 @@ const defaultProps = {
 const SelectAsyncControl = (props) => {
   const { value, onChange, dataEndpoint, multi, mutator, placeholder, onAsyncErrorMessage } = props;
   const onSelectionChange = (options) => {
-    const optionValues = options.map(option => option.value);
-    onChange(optionValues);
+    let val;
+    if (multi) {
+      val = options.map(option => option.value);
+    } else if (options) {
+      val = options.value;
+    } else {
+      val = null;
+    }
+    onChange(val);
   };
 
   return (

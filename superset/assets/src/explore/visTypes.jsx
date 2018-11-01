@@ -14,7 +14,7 @@ export const sections = {
     description: t('Time related form attributes'),
     controlSetRows: [
       ['granularity', 'druid_time_origin'],
-      ['since', 'until'],
+      ['time_range'],
     ],
   },
   datasourceAndVizType: {
@@ -38,7 +38,7 @@ export const sections = {
     expanded: true,
     controlSetRows: [
       ['granularity_sqla', 'time_grain_sqla'],
-      ['since', 'until'],
+      ['time_range'],
     ],
   },
   annotations: {
@@ -58,6 +58,7 @@ export const sections = {
         ['groupby'],
         ['limit', 'timeseries_limit_metric'],
         ['order_desc', 'contribution'],
+        ['row_limit', null],
       ],
     },
     {
@@ -66,11 +67,11 @@ export const sections = {
       'that allow for advanced analytical post processing ' +
       'of query results'),
       controlSetRows: [
-        [<h1 className="section-header">Moving Average</h1>],
+        [<h1 className="section-header">{t('Moving Average')}</h1>],
         ['rolling_type', 'rolling_periods', 'min_periods'],
-        [<h1 className="section-header">Time Comparison</h1>],
+        [<h1 className="section-header">{t('Time Comparison')}</h1>],
         ['time_compare', 'comparison_type'],
-        [<h1 className="section-header">Python Functions</h1>],
+        [<h1 className="section-header">{t('Python Functions')}</h1>],
         [<h2 className="section-header">pandas.resample</h2>],
         ['resample_how', 'resample_rule', 'resample_fillmethod'],
       ],
@@ -178,7 +179,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['color_scheme'],
-          ['show_brush', 'show_legend'],
+          ['show_brush', 'send_time_range', 'show_legend'],
           ['rich_tooltip', 'show_markers'],
           ['line_interpolation'],
         ],
@@ -208,6 +209,9 @@ export const visTypes = {
       x_axis_format: {
         choices: D3_TIME_FORMAT_OPTIONS,
         default: 'smart_date',
+      },
+      row_limit: {
+        default: 50000,
       },
     },
   },
@@ -330,6 +334,9 @@ export const visTypes = {
       x_axis_format: {
         choices: D3_TIME_FORMAT_OPTIONS,
         default: 'smart_date',
+      },
+      metric: {
+        clearable: false,
       },
     },
   },
@@ -502,7 +509,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['spatial', 'size'],
-          ['row_limit', null],
+          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
         ],
       },
@@ -541,7 +548,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['spatial', 'size'],
-          ['row_limit', null],
+          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
         ],
       },
@@ -581,7 +588,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['line_column', 'line_type'],
-          ['row_limit', null],
+          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
         ],
       },
@@ -604,6 +611,14 @@ export const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      line_type: {
+        choices: [
+          ['polyline', 'Polyline'],
+          ['json', 'JSON'],
+        ],
+      },
+    },
   },
 
   deck_screengrid: {
@@ -615,7 +630,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['spatial', 'size'],
-          ['row_limit', null],
+          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
         ],
       },
@@ -628,6 +643,7 @@ export const visTypes = {
       },
       {
         label: t('Grid'),
+        expanded: true,
         controlSetRows: [
           ['grid_size', 'color_picker'],
         ],
@@ -660,7 +676,8 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['geojson', 'row_limit'],
+          ['geojson', null],
+          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
         ],
       },
@@ -700,25 +717,31 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['line_column', 'line_type'],
-          ['row_limit', null],
           ['adhoc_filters'],
+          ['metric'],
+          ['row_limit', null],
+          ['line_column', 'line_type'],
+          ['reverse_long_lat', 'filter_nulls'],
         ],
       },
       {
         label: t('Map'),
+        expanded: true,
         controlSetRows: [
           ['mapbox_style', 'viewport'],
-          ['reverse_long_lat', null],
+          ['autozoom', null],
         ],
       },
       {
         label: t('Polygon Settings'),
+        expanded: true,
         controlSetRows: [
           ['fill_color_picker', 'stroke_color_picker'],
           ['filled', 'stroked'],
           ['extruded', null],
-          ['point_radius_scale', null],
+          ['line_width', null],
+          ['linear_color_scheme', 'opacity'],
+          ['table_filter', null],
         ],
       },
       {
@@ -731,6 +754,17 @@ export const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      metric: {
+        validators: [],
+      },
+      line_column: {
+        label: t('Polygon Column'),
+      },
+      line_type: {
+        label: t('Polygon Encoding'),
+      },
+    },
   },
 
   deck_arc: {
@@ -742,7 +776,7 @@ export const visTypes = {
         expanded: true,
         controlSetRows: [
           ['start_spatial', 'end_spatial'],
-          ['row_limit', null],
+          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
         ],
       },
@@ -756,9 +790,9 @@ export const visTypes = {
       {
         label: t('Arc'),
         controlSetRows: [
-          ['color_picker', 'legend_position'],
+          ['color_picker', 'target_color_picker'],
           ['dimension', 'color_scheme'],
-          ['stroke_width', null],
+          ['stroke_width', 'legend_position'],
         ],
       },
       {
@@ -802,7 +836,8 @@ export const visTypes = {
         label: t('Query'),
         expanded: true,
         controlSetRows: [
-          ['spatial', 'row_limit'],
+          ['spatial', null],
+          ['row_limit', 'filter_nulls'],
           ['adhoc_filters'],
         ],
       },
@@ -915,6 +950,7 @@ export const visTypes = {
       {
         label: t('NOT GROUPED BY'),
         description: t('Use this section if you want to query atomic rows'),
+        expanded: true,
         controlSetRows: [
           ['all_columns'],
           ['order_by_cols'],
@@ -942,9 +978,6 @@ export const visTypes = {
     controlOverrides: {
       metrics: {
         validators: [],
-      },
-      time_grain_sqla: {
-        default: null,
       },
     },
   },
@@ -1075,6 +1108,7 @@ export const visTypes = {
           ['metrics'],
           ['adhoc_filters'],
           ['groupby'],
+          ['row_limit'],
         ],
       },
       {
@@ -1839,7 +1873,7 @@ export const visTypes = {
   },
 
   partition: {
-    label: 'Partition Diagram',
+    label: t('Partition Diagram'),
     showOnExplore: true,
     controlPanelSections: [
       sections.NVD3TimeSeries[0],

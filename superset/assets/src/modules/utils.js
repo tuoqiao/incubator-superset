@@ -1,8 +1,10 @@
 /* eslint camelcase: 0 */
 import d3 from 'd3';
 import $ from 'jquery';
-
+import { SupersetClient } from '@superset-ui/core';
 import { formatDate, UTC } from './dates';
+import { COMMON_ERR_MESSAGES } from '../utils/common';
+import { t } from '../locales';
 
 const siFormatter = d3.format('.3s');
 
@@ -119,14 +121,56 @@ function showApiMessage(resp) {
              .appendTo($('#alert-container'));
 }
 
-export function toggleCheckbox(apiUrlPrefix, selector) {
-  const apiUrl = apiUrlPrefix + $(selector)[0].checked;
-  $.get(apiUrl).fail(function (xhr) {
-    const resp = xhr.responseJSON;
-    if (resp && resp.message) {
-      showApiMessage(resp);
+export function getClientErrorObject(response) {
+  // takes a Response object as input, attempts to read response as Json if possible,
+  // and returns a Promise that resolves to a plain object with error key and text value.
+  return new Promise((resolve) => {
+    if (typeof response === 'string') {
+      resolve({ error: response });
+    } else if (response && response.constructor === Response && !response.bodyUsed) {
+      // attempt to read the body as json, and fallback to text. we must clone the
+      // response in order to fallback to .text() because Response is single-read
+      response.clone().json().then((errorJson) => {
+        let error = { ...response, ...errorJson };
+        if (error.stack) {
+          error = {
+            ...error,
+            error: t('Unexpected error: ') +
+              (error.description || t('(no description, click to see stack trace)')),
+            stacktrace: error.stack,
+          };
+        } else if (error.responseText && error.responseText.indexOf('CSRF') >= 0) {
+          error = {
+            ...error,
+            error: COMMON_ERR_MESSAGES.SESSION_TIMED_OUT,
+          };
+        }
+        resolve(error);
+      }).catch(() => {
+        // fall back to reading as text
+        response.text().then((errorText) => {
+          resolve({ ...response, error: errorText });
+        });
+      });
+    } else {
+      // fall back to Response.statusText or generic error of we cannot read the response
+      resolve({ ...response, error: response.statusText || t('An error occurred') });
     }
   });
+
+}
+
+export function toggleCheckbox(apiUrlPrefix, selector) {
+  SupersetClient.get({ endpoint: apiUrlPrefix + $(selector)[0].checked })
+    .then(() => {})
+    .catch(response =>
+      getClientErrorObject(response)
+        .then((parsedResp) => {
+          if (parsedResp && parsedResp.message) {
+            showApiMessage(parsedResp);
+          }
+        }),
+      );
 }
 
 /**
@@ -186,73 +230,8 @@ export function formatSelectOptions(options) {
   );
 }
 
-export function slugify(string) {
-  // slugify('My Neat Label! '); returns 'my-neat-label'
-  return string
-          .toString()
-          .toLowerCase()
-          .trim()
-          .replace(/[\s\W-]+/g, '-') // replace spaces, non-word chars, w/ a single dash (-)
-          .replace(/-$/, ''); // remove last floating dash
-}
-
-export function getAjaxErrorMsg(error) {
-  const respJSON = error.responseJSON;
-  return (respJSON && respJSON.error) ? respJSON.error :
-          error.responseText;
-}
-
 export function getDatasourceParameter(datasourceId, datasourceType) {
   return `${datasourceId}__${datasourceType}`;
-}
-
-export function customizeToolTip(chart, xAxisFormatter, yAxisFormatters) {
-  chart.useInteractiveGuideline(true);
-  chart.interactiveLayer.tooltip.contentGenerator(function (d) {
-    const tooltipTitle = xAxisFormatter(d.value);
-    let tooltip = '';
-
-    tooltip += "<table><thead><tr><td colspan='3'>"
-      + `<strong class='x-value'>${tooltipTitle}</strong>`
-      + '</td></tr></thead><tbody>';
-
-    d.series.forEach((series, i) => {
-      const yAxisFormatter = yAxisFormatters[i];
-      const value = yAxisFormatter(series.value);
-      tooltip += "<tr><td class='legend-color-guide'>"
-        + `<div style="background-color: ${series.color};"></div></td>`
-        + `<td class='key'>${series.key}</td>`
-        + `<td class='value'>${value}</td></tr>`;
-    });
-
-    tooltip += '</tbody></table>';
-
-    return tooltip;
-  });
-}
-
-export function initJQueryAjax() {
-  // Works in conjunction with a Flask-WTF token as described here:
-  // http://flask-wtf.readthedocs.io/en/stable/csrf.html#javascript-requests
-  const token = $('input#csrf_token').val();
-  if (token) {
-    $.ajaxSetup({
-      beforeSend(xhr, settings) {
-        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
-          xhr.setRequestHeader('X-CSRFToken', token);
-        }
-      },
-    });
-  }
-}
-
-export function tryNumify(s) {
-  // Attempts casting to Number, returns string when failing
-  const n = Number(s);
-  if (isNaN(n)) {
-    return s;
-  }
-  return n;
 }
 
 export function getParam(name) {

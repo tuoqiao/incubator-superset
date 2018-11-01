@@ -7,7 +7,6 @@ import URI from 'urijs';
 
 import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
-import CopyQueryTabUrl from './CopyQueryTabUrl';
 import { areArraysShallowEqual } from '../../reduxUtils';
 import { t } from '../../locales';
 import TabStatusIcon from './TabStatusIcon';
@@ -41,11 +40,14 @@ class TabbedSqlEditors extends React.PureComponent {
   }
   componentDidMount() {
     const query = URI(window.location).search(true);
-    if (query.id || query.sql || query.savedQueryId) {
+    // Popping a new tab based on the querystring
+    if (query.id || query.sql || query.savedQueryId || query.datasourceKey) {
       if (query.id) {
         this.props.actions.popStoredQuery(query.id);
       } else if (query.savedQueryId) {
         this.props.actions.popSavedQuery(query.savedQueryId);
+      } else if (query.datasourceKey) {
+        this.props.actions.popDatasourceQuery(query.datasourceKey, query.sql);
       } else if (query.sql) {
         let dbId = query.dbid;
         if (dbId) {
@@ -184,8 +186,7 @@ class TabbedSqlEditors extends React.PureComponent {
               </div>
               {t('Rename tab')}
             </MenuItem>
-            {qe && <CopyQueryTabUrl queryEditor={qe} />}
-            <MenuItem eventKey="4" onClick={this.toggleLeftBar.bind(this)}>
+            <MenuItem eventKey="3" onClick={this.toggleLeftBar.bind(this)}>
               <div className="icon-container">
                 <i className="fa fa-cogs" />
               </div>

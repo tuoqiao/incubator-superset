@@ -1,31 +1,21 @@
-# -*- coding: utf-8 -*-
 """Unit tests for Superset"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import json
 import unittest
 
 from sqlalchemy.orm.session import make_transient
 
-from superset import db, utils
+from superset import db
 from superset.connectors.druid.models import (
     DruidColumn, DruidDatasource, DruidMetric,
 )
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.models import core as models
+from superset.utils import core as utils
 from .base_tests import SupersetTestCase
 
 
 class ImportExportTests(SupersetTestCase):
     """Testing export import functionality for dashboards"""
-
-    requires_examples = True
-
-    def __init__(self, *args, **kwargs):
-        super(ImportExportTests, self).__init__(*args, **kwargs)
 
     @classmethod
     def delete_imports(cls):
@@ -48,6 +38,7 @@ class ImportExportTests(SupersetTestCase):
     @classmethod
     def setUpClass(cls):
         cls.delete_imports()
+        cls.create_druid_test_objects()
 
     @classmethod
     def tearDownClass(cls):
@@ -206,7 +197,7 @@ class ImportExportTests(SupersetTestCase):
     def test_export_1_dashboard(self):
         birth_dash = self.get_dash_by_slug('births')
         export_dash_url = (
-            '/dashboardmodelview/export_dashboards_form?id={}&action=go'
+            '/dashboard/export_dashboards_form?id={}&action=go'
             .format(birth_dash.id)
         )
         resp = self.client.get(export_dash_url)
@@ -235,7 +226,7 @@ class ImportExportTests(SupersetTestCase):
         birth_dash = self.get_dash_by_slug('births')
         world_health_dash = self.get_dash_by_slug('world_health')
         export_dash_url = (
-            '/dashboardmodelview/export_dashboards_form?id={}&id={}&action=go'
+            '/dashboard/export_dashboards_form?id={}&id={}&action=go'
             .format(birth_dash.id, world_health_dash.id))
         resp = self.client.get(export_dash_url)
         exported_dashboards = sorted(

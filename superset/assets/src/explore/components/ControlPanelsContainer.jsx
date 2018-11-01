@@ -45,7 +45,7 @@ class ControlPanelsContainer extends React.Component {
     }
     // Applying mapStateToProps if needed
     if (mapF) {
-      return Object.assign({}, control, mapF(this.props.exploreState, control));
+      return Object.assign({}, control, mapF(this.props.exploreState, control, this.props.actions));
     }
     return control;
   }
@@ -130,7 +130,7 @@ class ControlPanelsContainer extends React.Component {
             </Alert>
           }
           <Tabs id="controlSections">
-            <Tab eventKey="query" title="Data">
+            <Tab eventKey="query" title={t('Data')}>
               {querySectionsToRender.map(this.renderControlPanelSection)}
             </Tab>
             {displaySectionsToRender.length > 0 &&

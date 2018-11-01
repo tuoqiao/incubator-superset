@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """The main config file for Superset
 
@@ -6,11 +5,6 @@ All configuration in this file can be overridden by providing a superset_config
 in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from collections import OrderedDict
 import imp
 import json
@@ -166,9 +160,18 @@ LANGUAGES = {
     'zh': {'flag': 'cn', 'name': 'Chinese'},
     'ja': {'flag': 'jp', 'name': 'Japanese'},
     'de': {'flag': 'de', 'name': 'German'},
+    'pt': {'flag': 'pt', 'name': 'Portuguese'},
     'pt_BR': {'flag': 'br', 'name': 'Brazilian Portuguese'},
     'ru': {'flag': 'ru', 'name': 'Russian'},
 }
+
+# ---------------------------------------------------
+# Feature flags
+# ---------------------------------------------------
+# Feature flags that are on by default go here. Their
+# values can be overridden by those in super_config.py
+FEATURE_FLAGS = {}
+
 # ---------------------------------------------------
 # Image and file configuration
 # ---------------------------------------------------
@@ -200,6 +203,30 @@ ALLOWED_EXTENSIONS = set(['csv'])
 CSV_EXPORT = {
     'encoding': 'utf-8',
 }
+
+# ---------------------------------------------------
+# Time grain configurations
+# ---------------------------------------------------
+# List of time grains to disable in the application (see list of builtin
+# time grains in superset/db_engine_specs.builtin_time_grains).
+# For example: to disable 1 second time grain:
+# TIME_GRAIN_BLACKLIST = ['PT1S']
+TIME_GRAIN_BLACKLIST = []
+
+# Additional time grains to be supported using similar definitions as in
+# superset/db_engine_specs.builtin_time_grains.
+# For example: To add a new 2 second time grain:
+# TIME_GRAIN_ADDONS = {'PT2S': '2 second'}
+TIME_GRAIN_ADDONS = {}
+
+# Implementation of additional time grains per engine.
+# For example: To implement 2 second time grain on clickhouse engine:
+# TIME_GRAIN_ADDON_FUNCTIONS = {
+#     'clickhouse': {
+#         'PT2S': 'toDateTime(intDiv(toUInt32(toDateTime({col})), 2)*2)'
+#     }
+# }
+TIME_GRAIN_ADDON_FUNCTIONS = {}
 
 # ---------------------------------------------------
 # List of viz_types not allowed in your environment
@@ -250,9 +277,13 @@ BACKUP_COUNT = 30
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', '')
 
-# Maximum number of rows returned in the SQL editor
-SQL_MAX_ROW = 1000000
-DISPLAY_SQL_MAX_ROW = 1000
+# Maximum number of rows returned from a database
+# in async mode, no more than SQL_MAX_ROW will be returned and stored
+# in the results backend. This also becomes the limit when exporting CSVs
+SQL_MAX_ROW = 100000
+
+# Limit to be returned to the frontend.
+DISPLAY_MAX_ROW = 1000
 
 # Maximum number of tables/views displayed in the dropdown window in SQL Lab.
 MAX_TABLE_NAMES = 3000
@@ -278,8 +309,6 @@ class CeleryConfig(object):
 CELERY_CONFIG = CeleryConfig
 """
 CELERY_CONFIG = None
-SQL_CELERY_DB_FILE_PATH = os.path.join(DATA_DIR, 'celerydb.sqlite')
-SQL_CELERY_RESULTS_DB_FILE_PATH = os.path.join(DATA_DIR, 'celery_results.sqlite')
 
 # static http headers to be served by your Superset server.
 # This header prevents iFrames from other domains and

@@ -1,8 +1,6 @@
-/* global window */
-/* eslint no-undef: 2 */
 import React from 'react';
 import PropTypes from 'prop-types';
-import throttle from 'lodash.throttle';
+import { throttle } from 'lodash';
 import {
   Col,
   FormGroup,
@@ -21,7 +19,7 @@ import Button from '../../components/Button';
 import TemplateParamsEditor from './TemplateParamsEditor';
 import SouthPane from './SouthPane';
 import SaveQuery from './SaveQuery';
-import ShareQuery from './ShareQuery';
+import ShareSqlLabQuery from './ShareSqlLabQuery';
 import Timer from '../../components/Timer';
 import Hotkeys from '../../components/Hotkeys';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
@@ -89,7 +87,7 @@ class SqlEditor extends React.PureComponent {
       height,
     });
 
-    if (this.refs.ace.clientHeight) {
+    if (this.refs.ace && this.refs.ace.clientHeight) {
       this.props.actions.persistEditorHeight(this.props.queryEditor, this.refs.ace.clientHeight);
     }
   }
@@ -99,8 +97,14 @@ class SqlEditor extends React.PureComponent {
   getHotkeyConfig() {
     return [
       {
-        name: 'runQuery',
+        name: 'runQuery1',
         key: 'ctrl+r',
+        descr: 'Run query',
+        func: this.runQuery,
+      },
+      {
+        name: 'runQuery2',
+        key: 'ctrl+enter',
         descr: 'Run query',
         func: this.runQuery,
       },
@@ -231,7 +235,7 @@ class SqlEditor extends React.PureComponent {
               />
             </span>
             <span className="m-r-5">
-              <ShareQuery queryEditor={qe} />
+              <ShareSqlLabQuery queryEditor={qe} />
             </span>
             {ctasControls}
             <span className="m-l-5">

@@ -3,7 +3,7 @@
  *
  * While the React components located in `controls/components` represent different
  * types of controls (CheckboxControl, SelectControl, TextControl, ...), the controls here
- * represent instances of control types, that can be reused across visualisation types.
+ * represent instances of control types, that can be reused across visualization types.
  *
  * When controls are reused across viz types, their values are carried over as a user
  * changes the chart types.
@@ -45,11 +45,16 @@ import {
   mainMetric,
 } from '../modules/utils';
 import * as v from './validators';
-import { colorPrimary, ALL_COLOR_SCHEMES, spectrums } from '../modules/colors';
+import { PRIMARY_COLOR } from '../modules/colors';
 import { defaultViewport } from '../modules/geo';
 import ColumnOption from '../components/ColumnOption';
 import OptionDescription from '../components/OptionDescription';
 import { t } from '../locales';
+import getCategoricalSchemeRegistry from '../modules/colors/CategoricalSchemeRegistrySingleton';
+import getSequentialSchemeRegistry from '../modules/colors/SequentialSchemeRegistrySingleton';
+
+const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
+const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
@@ -103,6 +108,10 @@ const groupByControl = {
   optionRenderer: c => <ColumnOption column={c} showType />,
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
+  filterOption: (opt, text) => (
+    (opt.column_name && opt.column_name.toLowerCase().indexOf(text) >= 0) ||
+    (opt.verbose_name && opt.verbose_name.toLowerCase().indexOf(text) >= 0)
+  ),
   mapStateToProps: (state, control) => {
     const newState = {};
     if (state.datasource) {
@@ -187,8 +196,9 @@ export const controls = {
     label: t('Datasource'),
     default: null,
     description: null,
-    mapStateToProps: state => ({
+    mapStateToProps: (state, control, actions) => ({
       datasource: state.datasource,
+      onDatasourceSave: actions ? actions.setDatasource : () => {},
     }),
   },
 
@@ -233,7 +243,15 @@ export const controls = {
     label: t('Fixed Color'),
     description: t('Use this to define a static color for all circles'),
     type: 'ColorPickerControl',
-    default: colorPrimary,
+    default: PRIMARY_COLOR,
+    renderTrigger: true,
+  },
+
+  target_color_picker: {
+    label: t('Target Color'),
+    description: t('Color of the target location'),
+    type: 'ColorPickerControl',
+    default: PRIMARY_COLOR,
     renderTrigger: true,
   },
 
@@ -244,6 +262,7 @@ export const controls = {
     clearable: false,
     default: 'tr',
     choices: [
+      [null, 'None'],
       ['tl', 'Top left'],
       ['tr', 'Top right'],
       ['bl', 'Bottom left'],
@@ -256,7 +275,7 @@ export const controls = {
     label: t('Fill Color'),
     description: t(' Set the opacity to 0 if you do not want to override the color specified in the GeoJSON'),
     type: 'ColorPickerControl',
-    default: colorPrimary,
+    default: PRIMARY_COLOR,
     renderTrigger: true,
   },
 
@@ -264,7 +283,7 @@ export const controls = {
     label: t('Stroke Color'),
     description: t(' Set the opacity to 0 if you do not want to override the color specified in the GeoJSON'),
     type: 'ColorPickerControl',
-    default: colorPrimary,
+    default: PRIMARY_COLOR,
     renderTrigger: true,
   },
 
@@ -307,25 +326,14 @@ export const controls = {
   linear_color_scheme: {
     type: 'ColorSchemeControl',
     label: t('Linear Color Scheme'),
-    choices: [
-      ['fire', 'fire'],
-      ['white_black', 'white/black'],
-      ['black_white', 'black/white'],
-      ['dark_blue', 'light/dark blue'],
-      ['pink_grey', 'pink/white/grey'],
-      ['greens', 'greens'],
-      ['purples', 'purples'],
-      ['oranges', 'oranges'],
-      ['blue_white_yellow', 'blue/white/yellow'],
-      ['red_yellow_blue', 'red/yellowish/blue'],
-      ['brown_white_green', 'brown/white/green'],
-      ['purple_white_green', 'purple/white/green'],
-    ],
+    choices: () => sequentialSchemeRegistry
+      .values()
+      .map(value => [value.name, value.label]),
     default: 'blue_white_yellow',
     clearable: false,
     description: '',
     renderTrigger: true,
-    schemes: spectrums,
+    schemes: () => sequentialSchemeRegistry.getMap(),
     isLinear: true,
   },
 
@@ -510,6 +518,7 @@ export const controls = {
       'Egypt',
       'France',
       'Germany',
+      'India',
       'Italy',
       'Portugal',
       'Morocco',
@@ -523,6 +532,7 @@ export const controls = {
       'Uk',
       'Ukraine',
       'Usa',
+      'Zambia',
     ].map(s => [s, s]),
     description: t('The name of country that Superset should display'),
   },
@@ -644,21 +654,18 @@ export const controls = {
     }),
   },
 
+  filter_nulls: {
+    type: 'CheckboxControl',
+    label: t('Ignore null locations'),
+    default: true,
+    description: t('Whether to ignore locations that are null'),
+  },
+
   geojson: {
     type: 'SelectControl',
     label: t('GeoJson Column'),
     validators: [v.nonEmpty],
     description: t('Select the geojson column'),
-    mapStateToProps: state => ({
-      choices: (state.datasource) ? state.datasource.all_cols : [],
-    }),
-  },
-
-  polygon: {
-    type: 'SelectControl',
-    label: t('Polygon Column'),
-    validators: [v.nonEmpty],
-    description: t('Select the polygon column. Each row should contain JSON.array(N) of [longitude, latitude] points'),
     mapStateToProps: state => ({
       choices: (state.datasource) ? state.datasource.all_cols : [],
     }),
@@ -679,6 +686,7 @@ export const controls = {
     label: t('Stroke Width'),
     validators: [v.integer],
     default: null,
+    renderTrigger: true,
     choices: formatSelectOptions([1, 2, 3, 4, 5]),
   },
 
@@ -767,6 +775,8 @@ export const controls = {
       ['week_starting_sunday', 'week starting Sunday'],
       ['week_ending_saturday', 'week ending Saturday'],
       ['P1M', 'month'],
+      ['P3M', 'quarter'],
+      ['P1Y', 'year'],
     ],
     description: t('The time granularity for the visualization. Note that you ' +
     'can type and use simple natural language as in `10 seconds`, ' +
@@ -852,7 +862,7 @@ export const controls = {
   time_grain_sqla: {
     type: 'SelectControl',
     label: t('Time Grain'),
-    default: control => control.choices && control.choices.length ? control.choices[0][0] : null,
+    default: 'P1D',
     description: t('The time granularity for the visualization. This ' +
     'applies a date transformation to alter ' +
     'your time column and defines a new time granularity. ' +
@@ -890,18 +900,11 @@ export const controls = {
     description: t('Pandas resample fill method'),
   },
 
-  since: {
+  time_range: {
     type: 'DateFilterControl',
     freeForm: true,
-    label: t('Since'),
-    default: t('7 days ago'),
-  },
-
-  until: {
-    type: 'DateFilterControl',
-    freeForm: true,
-    label: t('Until'),
-    default: 'now',
+    label: t('Time range'),
+    default: t('Last week'),
   },
 
   max_bubble_size: {
@@ -1258,7 +1261,7 @@ export const controls = {
     label: t('Rotation'),
     choices: formatSelectOptions(['random', 'flat', 'square']),
     renderTrigger: true,
-    default: 'square',
+    default: 'flat',
     description: t('Rotation to apply to words in the cloud'),
   },
 
@@ -1306,7 +1309,6 @@ export const controls = {
       'mean',
       'min',
       'max',
-      'median',
       'stdev',
       'var',
     ]),
@@ -1419,10 +1421,10 @@ export const controls = {
 
   table_filter: {
     type: 'CheckboxControl',
-    label: t('Table Filter'),
+    label: t('Emit Filter Events'),
     renderTrigger: true,
     default: false,
-    description: t('Whether to apply filter when table cell is clicked'),
+    description: t('Whether to apply filter when items are clicked'),
   },
 
   align_pn: {
@@ -1455,6 +1457,14 @@ export const controls = {
     renderTrigger: true,
     default: true,
     description: t('Whether to display the legend (toggles)'),
+  },
+
+  send_time_range: {
+    type: 'CheckboxControl',
+    label: t('Propagate'),
+    renderTrigger: true,
+    default: false,
+    description: t('Send range filter events to other charts'),
   },
 
   show_labels: {
@@ -1718,6 +1728,17 @@ export const controls = {
     'Between 0 and 1.'),
   },
 
+  opacity: {
+    type: 'SliderControl',
+    label: t('Opacity'),
+    default: 80,
+    step: 1,
+    min: 0,
+    max: 100,
+    renderTrigger: true,
+    description: t('Opacity, expects values between 0 and 100'),
+  },
+
   viewport: {
     type: 'ViewportControl',
     label: t('Viewport'),
@@ -1791,7 +1812,7 @@ export const controls = {
   color: {
     type: 'ColorPickerControl',
     label: t('Color'),
-    default: colorPrimary,
+    default: PRIMARY_COLOR,
     description: t('Pick a color'),
   },
 
@@ -1861,9 +1882,9 @@ export const controls = {
 
   slice_id: {
     type: 'HiddenControl',
-    label: t('Slice ID'),
+    label: t('Chart ID'),
     hidden: true,
-    description: t('The id of the active slice'),
+    description: t('The id of the active chart'),
   },
 
   cache_timeout: {
@@ -1903,9 +1924,9 @@ export const controls = {
     label: t('Color Scheme'),
     default: 'bnbColors',
     renderTrigger: true,
-    choices: Object.keys(ALL_COLOR_SCHEMES).map(s => ([s, s])),
+    choices: () => categoricalSchemeRegistry.keys().map(s => ([s, s])),
     description: t('The color scheme for rendering chart'),
-    schemes: ALL_COLOR_SCHEMES,
+    schemes: () => categoricalSchemeRegistry.getMap(),
   },
 
   significance_level: {
@@ -2071,6 +2092,7 @@ export const controls = {
     choices: [
       ['polyline', 'Polyline'],
       ['json', 'JSON'],
+      ['geohash', 'geohash (square)'],
     ],
   },
 
@@ -2192,7 +2214,7 @@ export const controls = {
     label: t('Filled'),
     renderTrigger: true,
     description: t('Whether to fill the objects'),
-    default: false,
+    default: true,
   },
 
   normalized: {

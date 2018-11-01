@@ -1,11 +1,5 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=C,R,W
 """Views used by the SqlAlchemy connector"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose
 from flask_appbuilder.actions import action
@@ -15,10 +9,11 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 from past.builtins import basestring
 
-from superset import appbuilder, db, security_manager, utils
+from superset import appbuilder, db, security_manager
 from superset.connectors.base.views import DatasourceModelView
+from superset.utils import core as utils
 from superset.views.base import (
-    DatasourceFilter, DeleteMixin, get_datasource_exist_error_mgs,
+    DatasourceFilter, DeleteMixin, get_datasource_exist_error_msg,
     ListWidgetWithCheckboxes, SupersetModelView, YamlExportMixin,
 )
 from . import models
@@ -37,12 +32,12 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     edit_columns = [
         'column_name', 'verbose_name', 'description',
         'type', 'groupby', 'filterable',
-        'table', 'count_distinct', 'sum', 'min', 'max', 'expression',
+        'table', 'expression',
         'is_dttm', 'python_date_format', 'database_expression']
     add_columns = edit_columns
     list_columns = [
-        'column_name', 'verbose_name', 'type', 'groupby', 'filterable', 'count_distinct',
-        'sum', 'min', 'max', 'is_dttm']
+        'column_name', 'verbose_name', 'type', 'groupby', 'filterable',
+        'is_dttm']
     page_size = 500
     description_columns = {
         'is_dttm': _(
@@ -86,10 +81,6 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'groupby': _('Groupable'),
         'filterable': _('Filterable'),
         'table': _('Table'),
-        'count_distinct': _('Count Distinct'),
-        'sum': _('Sum'),
-        'min': _('Min'),
-        'max': _('Max'),
         'expression': _('Expression'),
         'is_dttm': _('Is temporal'),
         'python_date_format': _('Datetime Format'),
@@ -160,7 +151,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
 
     list_title = _('List Tables')
     show_title = _('Show Table')
-    add_title = _('Add Table')
+    add_title = _('Import a table definition')
     edit_title = _('Edit Table')
 
     list_columns = [
@@ -184,13 +175,13 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     )
     description_columns = {
         'slices': _(
-            'The list of slices associated with this table. By '
+            'The list of charts associated with this table. By '
             'altering this datasource, you may change how these associated '
-            'slices behave. '
-            'Also note that slices need to point to a datasource, so '
-            'this form will fail at saving if removing slices from a '
-            'datasource. If you want to change the datasource for a slice, '
-            "overwrite the slice from the 'explore view'"),
+            'charts behave. '
+            'Also note that charts need to point to a datasource, so '
+            'this form will fail at saving if removing charts from a '
+            'datasource. If you want to change the datasource for a chart, '
+            "overwrite the chart from the 'explore view'"),
         'offset': _('Timezone offset (in hours) for this datasource'),
         'table_name': _(
             'Name of the table that exists in the source database'),
@@ -225,6 +216,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
             'Jinja templating syntax'),
         'cache_timeout': _(
             'Duration (in seconds) of the caching timeout for this table. '
+            'A timeout of 0 indicates that the cache never expires. '
             'Note this defaults to the database timeout if undefined.'),
     }
     label_columns = {
@@ -246,6 +238,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
         'description': _('Description'),
         'is_sqllab_view': _('SQL Lab View'),
         'template_params': _('Template parameters'),
+        'modified': _('Modified'),
     }
 
     def pre_add(self, table):
@@ -256,7 +249,7 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
                 models.SqlaTable.database_id == table.database.id)
             if db.session.query(table_query.exists()).scalar():
                 raise Exception(
-                    get_datasource_exist_error_mgs(table.full_name))
+                    get_datasource_exist_error_msg(table.full_name))
 
         # Fail before adding if the table can't be found
         try:
@@ -304,12 +297,26 @@ class TableModelView(DatasourceModelView, DeleteMixin, YamlExportMixin):  # noqa
     def refresh(self, tables):
         if not isinstance(tables, list):
             tables = [tables]
+        successes = []
+        failures = []
         for t in tables:
-            t.fetch_metadata()
-        msg = _(
-            'Metadata refreshed for the following table(s): %(tables)s',
-            tables=', '.join([t.table_name for t in tables]))
-        flash(msg, 'info')
+            try:
+                t.fetch_metadata()
+                successes.append(t)
+            except Exception:
+                failures.append(t)
+
+        if len(successes) > 0:
+            success_msg = _(
+                'Metadata refreshed for the following table(s): %(tables)s',
+                tables=', '.join([t.table_name for t in successes]))
+            flash(success_msg, 'info')
+        if len(failures) > 0:
+            failure_msg = _(
+                'Unable to retrieve metadata for the following table(s): %(tables)s',
+                tables=', '.join([t.table_name for t in failures]))
+            flash(failure_msg, 'danger')
+
         return redirect('/tablemodelview/list/')
 
 
