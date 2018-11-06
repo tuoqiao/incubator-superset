@@ -1,8 +1,8 @@
 /* eslint global-require: 0 */
+import d3 from 'd3';
 import { SupersetClient } from '@superset-ui/core';
 import { t } from '../locales';
 
-const d3 = require('d3');
 import getClientErrorObject from './getClientErrorObject';
 
 export const EARTH_CIRCUMFERENCE_KM = 40075.16;
