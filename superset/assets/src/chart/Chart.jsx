@@ -139,6 +139,14 @@ class Chart extends React.PureComponent {
         console.warn(error); // eslint-disable-line
         this.props.actions.chartRenderingFailed(error, this.props.chartId);
       });
+
+    Logger.append(LOG_ACTIONS_RENDER_CHART, {
+      slice_id: chartId,
+      has_err: true,
+      error_details: error.toString(),
+      start_offset: this.renderStartTime,
+      duration: Logger.getTimestamp() - this.renderStartTime,
+    });
   }
 
   addFilter(col, vals, merge = true, refresh = true) {
