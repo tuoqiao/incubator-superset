@@ -16,6 +16,7 @@ import * as exploreActions from '../actions/exploreActions';
 import * as saveModalActions from '../actions/saveModalActions';
 import * as chartActions from '../../chart/chartAction';
 import { isFeatureEnabledCreator } from '../../featureFlags';
+import { fetchDatasourceMetadata } from '../../dashboard/actions/datasources';
 import { Logger, ActionLog, EXPLORE_EVENT_NAMES, LOG_ACTIONS_MOUNT_EXPLORER } from '../../logger';
 
 const propTypes = {
@@ -82,7 +83,7 @@ class ExploreViewContainer extends React.Component {
       (this.props.controls.datasource == null ||
         nextProps.controls.datasource.value !== this.props.controls.datasource.value)
     ) {
-      this.props.actions.fetchDatasourceMetadata(nextProps.form_data.datasource, true);
+      fetchDatasourceMetadata(nextProps.form_data.datasource, true);
     }
 
     const changedControlKeys = this.findChangedControlKeys(this.props.controls, nextProps.controls);
