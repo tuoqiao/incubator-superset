@@ -136,17 +136,8 @@ class Chart extends React.PureComponent {
         }
       })
       .catch((error) => {
-        console.warn(error); // eslint-disable-line
-        this.props.actions.chartRenderingFailed(error, this.props.chartId);
+        this.error(error);
       });
-
-    Logger.append(LOG_ACTIONS_RENDER_CHART, {
-      slice_id: chartId,
-      has_err: true,
-      error_details: error.toString(),
-      start_offset: this.renderStartTime,
-      duration: Logger.getTimestamp() - this.renderStartTime,
-    });
   }
 
   addFilter(col, vals, merge = true, refresh = true) {
@@ -170,6 +161,15 @@ class Chart extends React.PureComponent {
   }
 
   error(e) {
+    Logger.append(LOG_ACTIONS_RENDER_CHART, {
+      slice_id: this.props.chartId,
+      has_err: true,
+      error_details: e.toString(),
+      start_offset: this.renderStartTime,
+      duration: Logger.getTimestamp() - this.renderStartTime,
+    });
+
+    console.warn(e); // eslint-disable-line
     this.props.actions.chartRenderingFailed(e, this.props.chartId);
   }
 
@@ -203,7 +203,7 @@ class Chart extends React.PureComponent {
     // check that we have the render function and data
     if (hasVisPromise && ['success', 'rendered'].indexOf(chartStatus) > -1) {
       const { vizType, formData, queryResponse, setControlValue, chartId } = this.props;
-      const renderStart = Logger.getTimestamp();
+      this.renderStartTime = Logger.getTimestamp();
 
       try {
         // Executing user-defined data mutator function
@@ -220,12 +220,11 @@ class Chart extends React.PureComponent {
         Logger.append(LOG_ACTIONS_RENDER_CHART, {
           slice_id: chartId,
           viz_type: vizType,
-          start_offset: renderStart,
-          duration: Logger.getTimestamp() - renderStart,
+          start_offset: this.renderStartTime,
+          duration: Logger.getTimestamp() - this.renderStartTime,
         });
       } catch (e) {
-        console.warn(e); // eslint-disable-line
-        this.props.actions.chartRenderingFailed(e, chartId);
+        this.error(e);
       }
     }
   }
