@@ -1,5 +1,24 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint-disable camelcase */
 import shortid from 'shortid';
+import { CategoricalColorNamespace } from '@superset-ui/color';
 
 import { chart } from '../../chart/chartReducer';
 import { initSliceEntities } from './sliceEntities';
@@ -18,7 +37,6 @@ import {
   CHART_TYPE,
   ROW_TYPE,
 } from '../util/componentTypes';
-import { getScale } from '../../modules/colors/CategoricalColorNamespace';
 
 export default function(bootstrapData) {
   const { user_id, datasources, common, editMode } = bootstrapData;
@@ -39,13 +57,17 @@ export default function(bootstrapData) {
   if (dashboard.metadata && dashboard.metadata.label_colors) {
     const colorMap = dashboard.metadata.label_colors;
     Object.keys(colorMap).forEach(label => {
-      getScale().setColor(label, colorMap[label]);
+      CategoricalColorNamespace.getScale().setColor(label, colorMap[label]);
     });
   }
 
   // dashboard layout
   const { position_json: positionJson } = dashboard;
-  const layout = positionJson || getEmptyLayout();
+  // new dash: positionJson could be {} or null
+  const layout =
+    positionJson && Object.keys(positionJson).length > 0
+      ? positionJson
+      : getEmptyLayout();
 
   // create a lookup to sync layout names with slice names
   const chartIdToLayoutId = {};
@@ -137,8 +159,15 @@ export default function(bootstrapData) {
     future: [],
   };
 
+  // find direct link component and path from root
+  const directLinkComponentId = (window.location.hash || '#').substring(1);
+  let directPathToChild = [];
+  if (layout[directLinkComponentId]) {
+    directPathToChild = (layout[directLinkComponentId].parents || []).slice();
+    directPathToChild.push(directLinkComponentId);
+  }
+
   return {
-    featureFlags: common.feature_flags,
     datasources,
     sliceEntities: { ...initSliceEntities, slices, isLoading: false },
     charts: chartQueries,
@@ -157,6 +186,7 @@ export default function(bootstrapData) {
       dash_edit_perm: dashboard.dash_edit_perm,
       dash_save_perm: dashboard.dash_save_perm,
       superset_can_explore: dashboard.superset_can_explore,
+      superset_can_csv: dashboard.superset_can_csv,
       slice_can_edit: dashboard.slice_can_edit,
       common: {
         flash_messages: common.flash_messages,
@@ -166,8 +196,14 @@ export default function(bootstrapData) {
     dashboardState: {
       sliceIds: Array.from(sliceIds),
       refresh: false,
+      // All the filter_box's state in this dashboard
+      // When dashboard is first loaded into browser,
+      // its value is from preselect_filters that dashboard owner saved in dashboard's meta data
+      // When user start interacting with dashboard, it will be user picked values from all filter_box
       filters,
+      directPathToChild,
       expandedSlices: dashboard.metadata.expanded_slices || {},
+      refreshFrequency: dashboard.metadata.refresh_frequency || 0,
       css: dashboard.css || '',
       editMode: dashboard.dash_edit_perm && editMode,
       showBuilderPane: dashboard.dash_edit_perm && editMode,

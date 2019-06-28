@@ -1,5 +1,23 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import sinon from 'sinon';
-import * as actions from '../../../src/SqlLab/actions';
+import * as actions from '../../../src/SqlLab/actions/sqlLab';
 
 export const mockedActions = sinon.stub(Object.assign({}, actions));
 
@@ -292,7 +310,6 @@ export const databases = {
       allow_ctas: true,
       allow_dml: true,
       allow_run_async: false,
-      allow_run_sync: true,
       database_name: 'main',
       expose_in_sqllab: true,
       force_ctas_schema: '',
@@ -302,7 +319,6 @@ export const databases = {
       allow_ctas: true,
       allow_dml: false,
       allow_run_async: true,
-      allow_run_sync: true,
       database_name: 'Presto - Gold',
       expose_in_sqllab: true,
       force_ctas_schema: 'tmp',
@@ -311,7 +327,6 @@ export const databases = {
   ],
 };
 export const tables = {
-  tableLength: 3,
   options: [
     {
       value: 'birth_names',
@@ -351,11 +366,13 @@ export const runningQuery = {
   id: 'ryhMUZCGb',
   progress: 90,
   state: 'running',
+  startDttm: Date.now() - 500,
 };
 export const cachedQuery = Object.assign({}, queries[0], { cached: true });
 
 export const initialState = {
   sqlLab: {
+    offline: false,
     alerts: [],
     queries: {},
     databases: {},
@@ -367,6 +384,12 @@ export const initialState = {
     activeSouthPaneTab: 'Results',
   },
   messageToasts: [],
+  common: {
+    conf: {
+      DEFAULT_SQLLAB_LIMIT: 1000,
+      SQL_MAX_ROW: 100000,
+    },
+  },
 };
 
 export const query = {

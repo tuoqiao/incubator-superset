@@ -1,11 +1,25 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import {
   formatSelectOptionsForRange,
-  d3format,
-  d3FormatPreset,
-  d3TimeFormatPreset,
-  defaultNumberFormatter,
   mainMetric,
-  getClientErrorObject,
+  roundDecimal,
 } from '../../../src/modules/utils';
 
 describe('utils', () => {
@@ -23,52 +37,6 @@ describe('utils', () => {
         [2, '2'],
       ]);
     });
-  });
-
-  describe('d3format', () => {
-    it('returns a string formatted number as specified', () => {
-      expect(d3format('.3s', 1234)).toBe('1.23k');
-      expect(d3format('.3s', 1237)).toBe('1.24k');
-      expect(d3format('', 1237)).toBe('1.24k');
-    });
-  });
-
-  describe('d3FormatPreset', () => {
-    it('is a function', () => {
-      expect(typeof d3FormatPreset).toBe('function');
-    });
-    it('returns a working formatter', () => {
-      expect(d3FormatPreset('.3s')(3000000)).toBe('3.00M');
-    });
-  });
-
-  describe('d3TimeFormatPreset', () => {
-    it('is a function', () => {
-      expect(typeof d3TimeFormatPreset).toBe('function');
-    });
-    it('returns a working time formatter', () => {
-      expect(d3FormatPreset('smart_date')(0)).toBe('1970');
-    });
-  });
-
-  describe('defaultNumberFormatter', () => {
-    expect(defaultNumberFormatter(10)).toBe('10');
-    expect(defaultNumberFormatter(1)).toBe('1');
-    expect(defaultNumberFormatter(1.0)).toBe('1');
-    expect(defaultNumberFormatter(10.0)).toBe('10');
-    expect(defaultNumberFormatter(10001)).toBe('10.0k');
-    expect(defaultNumberFormatter(10100)).toBe('10.1k');
-    expect(defaultNumberFormatter(111000000)).toBe('111M');
-    expect(defaultNumberFormatter(0.23)).toBe('230m');
-
-    expect(defaultNumberFormatter(-10)).toBe('-10');
-    expect(defaultNumberFormatter(-1)).toBe('-1');
-    expect(defaultNumberFormatter(-1.0)).toBe('-1');
-    expect(defaultNumberFormatter(-10.0)).toBe('-10');
-    expect(defaultNumberFormatter(-10001)).toBe('-10.0k');
-    expect(defaultNumberFormatter(-10101)).toBe('-10.1k');
-    expect(defaultNumberFormatter(-111000000)).toBe('-111M');
-    expect(defaultNumberFormatter(-0.23)).toBe('-230m');
   });
 
   describe('mainMetric', () => {
@@ -98,44 +66,11 @@ describe('utils', () => {
       expect(mainMetric(metrics)).toBe('foo');
     });
   });
-
-  describe('getClientErrorObject', () => {
-    it('Returns a Promise', () => {
-      const response = getClientErrorObject('error');
-      expect(response.constructor === Promise).toBe(true);
-    });
-
-    it('Returns a Promise that resolves to an object with an error key', () => {
-      const error = 'error';
-
-      return getClientErrorObject(error).then((errorObj) => {
-        expect(errorObj).toMatchObject({ error });
-      });
-    });
-
-    it('Handles Response that can be parsed as json', () => {
-      const jsonError = { something: 'something', error: 'Error message' };
-      const jsonErrorString = JSON.stringify(jsonError);
-
-      return getClientErrorObject(new Response(jsonErrorString)).then((errorObj) => {
-        expect(errorObj).toMatchObject(jsonError);
-      });
-    });
-
-    it('Handles Response that can be parsed as text', () => {
-      const textError = 'Hello I am a text error';
-
-      return getClientErrorObject(new Response(textError)).then((errorObj) => {
-        expect(errorObj).toMatchObject({ error: textError });
-      });
-    });
-
-    it('Handles plain text as input', () => {
-      const error = 'error';
-
-      return getClientErrorObject(error).then((errorObj) => {
-        expect(errorObj).toMatchObject({ error });
-      });
+  describe('roundDecimal', () => {
+    it('rounding method to limit the number of decimal digits', () => {
+      expect(roundDecimal(1.139, 2)).toBe(1.14);
+      expect(roundDecimal(1.13929, 3)).toBe(1.139);
+      expect(roundDecimal(1.13929)).toBe(1);
     });
   });
 });

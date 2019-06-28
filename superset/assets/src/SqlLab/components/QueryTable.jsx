@@ -1,9 +1,28 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
-
 import moment from 'moment';
-import { Table } from 'reactable';
+import { Table } from 'reactable-arc';
 import { Label, ProgressBar, Well } from 'react-bootstrap';
+import { t } from '@superset-ui/translation';
+
 import Link from './Link';
 import ResultSet from './ResultSet';
 import ModalTrigger from '../../components/ModalTrigger';
@@ -11,7 +30,6 @@ import HighlightedSql from './HighlightedSql';
 import { fDuration } from '../../modules/dates';
 import { storeQuery } from '../../utils/common';
 import QueryStateLabel from './QueryStateLabel';
-import { t } from '../../locales';
 
 const propTypes = {
   columns: PropTypes.array,
@@ -173,7 +191,7 @@ class QueryTable extends React.PureComponent {
             <Link
               className="fa fa-pencil m-r-3"
               onClick={this.restoreSql.bind(this, query)}
-              tooltip={t('Overwrite text in editor with a query on this table')}
+              tooltip={t('Overwrite text in the editor with a query on this table')}
               placement="top"
             />
             <Link

@@ -1,3 +1,19 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # pylint: disable=C,R,W
 # pylint: disable=invalid-unary-operand-type
 from collections import OrderedDict
@@ -26,9 +42,10 @@ from pydruid.utils.postaggregator import (
 import requests
 import sqlalchemy as sa
 from sqlalchemy import (
-    Boolean, Column, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint,
+    Boolean, Column, DateTime, ForeignKey, Integer, String, Table, Text, UniqueConstraint,
 )
 from sqlalchemy.orm import backref, relationship
+from sqlalchemy_utils import EncryptedType
 
 from superset import conf, db, security_manager
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
@@ -43,6 +60,7 @@ from superset.utils.core import (
 
 DRUID_TZ = conf.get('DRUID_TZ')
 POST_AGG_TYPE = 'postagg'
+metadata = Model.metadata  # pylint: disable=no-member
 
 
 # Function wrapper because bound methods cannot
@@ -80,19 +98,16 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     verbose_name = Column(String(250), unique=True)
     # short unique name, used in permissions
     cluster_name = Column(String(250), unique=True)
-    coordinator_host = Column(String(255))
-    coordinator_port = Column(Integer, default=8081)
-    coordinator_endpoint = Column(
-        String(255), default='druid/coordinator/v1/metadata')
     broker_host = Column(String(255))
     broker_port = Column(Integer, default=8082)
     broker_endpoint = Column(String(255), default='druid/v2')
     metadata_last_refreshed = Column(DateTime)
     cache_timeout = Column(Integer)
+    broker_user = Column(String(255))
+    broker_pass = Column(EncryptedType(String(255), conf.get('SECRET_KEY')))
 
-    export_fields = ('cluster_name', 'coordinator_host', 'coordinator_port',
-                     'coordinator_endpoint', 'broker_host', 'broker_port',
-                     'broker_endpoint', 'cache_timeout')
+    export_fields = ('cluster_name', 'broker_host', 'broker_port',
+                     'broker_endpoint', 'cache_timeout', 'broker_user')
     update_from_object_fields = export_fields
     export_children = ['datasources']
 
@@ -121,22 +136,26 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
     def get_base_broker_url(self):
         base_url = self.get_base_url(
             self.broker_host, self.broker_port)
-        return '{base_url}/{self.broker_endpoint}'.format(**locals())
+        return f'{base_url}/{self.broker_endpoint}'
 
     def get_pydruid_client(self):
         cli = PyDruid(
             self.get_base_url(self.broker_host, self.broker_port),
             self.broker_endpoint)
+        if self.broker_user and self.broker_pass:
+            cli.set_basic_auth_credentials(self.broker_user, self.broker_pass)
         return cli
 
     def get_datasources(self):
         endpoint = self.get_base_broker_url() + '/datasources'
-        return json.loads(requests.get(endpoint).text)
+        auth = requests.auth.HTTPBasicAuth(self.broker_user, self.broker_pass)
+        return json.loads(requests.get(endpoint, auth=auth).text)
 
     def get_druid_version(self):
         endpoint = self.get_base_url(
-            self.coordinator_host, self.coordinator_port) + '/status'
-        return json.loads(requests.get(endpoint).text)['version']
+            self.broker_host, self.broker_port) + '/status'
+        auth = requests.auth.HTTPBasicAuth(self.broker_user, self.broker_pass)
+        return json.loads(requests.get(endpoint, auth=auth).text)['version']
 
     @property
     @utils.memoized
@@ -225,12 +244,6 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
                     if col_obj.type == 'STRING':
                         col_obj.groupby = True
                         col_obj.filterable = True
-                    if col_obj.type == 'hyperUnique' or col_obj.type == 'thetaSketch':
-                        col_obj.count_distinct = True
-                    if col_obj.is_num:
-                        col_obj.sum = True
-                        col_obj.min = True
-                        col_obj.max = True
                 datasource.refresh_metrics()
         session.commit()
 
@@ -268,14 +281,13 @@ class DruidColumn(Model, BaseColumn):
 
     export_fields = (
         'datasource_id', 'column_name', 'is_active', 'type', 'groupby',
-        'count_distinct', 'sum', 'avg', 'max', 'min', 'filterable',
-        'description', 'dimension_spec_json', 'verbose_name',
+        'filterable', 'description', 'dimension_spec_json', 'verbose_name',
     )
     update_from_object_fields = export_fields
     export_parent = 'datasource'
 
     def __repr__(self):
-        return self.column_name
+        return self.column_name or str(self.id)
 
     @property
     def expression(self):
@@ -294,77 +306,6 @@ class DruidColumn(Model, BaseColumn):
             metric_type='count',
             json=json.dumps({'type': 'count', 'name': 'count'}),
         )
-        # Somehow we need to reassign this for UDAFs
-        if self.type in ('DOUBLE', 'FLOAT'):
-            corrected_type = 'DOUBLE'
-        else:
-            corrected_type = self.type
-
-        if self.sum and self.is_num:
-            mt = corrected_type.lower() + 'Sum'
-            name = 'sum__' + self.column_name
-            metrics[name] = DruidMetric(
-                metric_name=name,
-                metric_type='sum',
-                verbose_name='SUM({})'.format(self.column_name),
-                json=json.dumps({
-                    'type': mt, 'name': name, 'fieldName': self.column_name}),
-            )
-
-        if self.avg and self.is_num:
-            mt = corrected_type.lower() + 'Avg'
-            name = 'avg__' + self.column_name
-            metrics[name] = DruidMetric(
-                metric_name=name,
-                metric_type='avg',
-                verbose_name='AVG({})'.format(self.column_name),
-                json=json.dumps({
-                    'type': mt, 'name': name, 'fieldName': self.column_name}),
-            )
-
-        if self.min and self.is_num:
-            mt = corrected_type.lower() + 'Min'
-            name = 'min__' + self.column_name
-            metrics[name] = DruidMetric(
-                metric_name=name,
-                metric_type='min',
-                verbose_name='MIN({})'.format(self.column_name),
-                json=json.dumps({
-                    'type': mt, 'name': name, 'fieldName': self.column_name}),
-            )
-        if self.max and self.is_num:
-            mt = corrected_type.lower() + 'Max'
-            name = 'max__' + self.column_name
-            metrics[name] = DruidMetric(
-                metric_name=name,
-                metric_type='max',
-                verbose_name='MAX({})'.format(self.column_name),
-                json=json.dumps({
-                    'type': mt, 'name': name, 'fieldName': self.column_name}),
-            )
-        if self.count_distinct:
-            name = 'count_distinct__' + self.column_name
-            if self.type == 'hyperUnique' or self.type == 'thetaSketch':
-                metrics[name] = DruidMetric(
-                    metric_name=name,
-                    verbose_name='COUNT(DISTINCT {})'.format(self.column_name),
-                    metric_type=self.type,
-                    json=json.dumps({
-                        'type': self.type,
-                        'name': name,
-                        'fieldName': self.column_name,
-                    }),
-                )
-            else:
-                metrics[name] = DruidMetric(
-                    metric_name=name,
-                    verbose_name='COUNT(DISTINCT {})'.format(self.column_name),
-                    metric_type='count_distinct',
-                    json=json.dumps({
-                        'type': 'cardinality',
-                        'name': name,
-                        'fieldNames': [self.column_name]}),
-                )
         return metrics
 
     def refresh_metrics(self):
@@ -439,6 +380,9 @@ class DruidMetric(Model, BaseMetric):
                  parent_name=self.datasource.full_name,
                  ) if self.datasource else None
 
+    def get_perm(self):
+        return self.perm
+
     @classmethod
     def import_obj(cls, i_metric):
         def lookup_obj(lookup_metric):
@@ -446,6 +390,14 @@ class DruidMetric(Model, BaseMetric):
                 DruidMetric.datasource_id == lookup_metric.datasource_id,
                 DruidMetric.metric_name == lookup_metric.metric_name).first()
         return import_datasource.import_simple_obj(db.session, i_metric, lookup_obj)
+
+
+druiddatasource_user = Table(
+    'druiddatasource_user', metadata,
+    Column('id', Integer, primary_key=True),
+    Column('user_id', Integer, ForeignKey('ab_user.id')),
+    Column('datasource_id', Integer, ForeignKey('datasources.id')),
+)
 
 
 class DruidDatasource(Model, BaseDatasource):
@@ -460,6 +412,7 @@ class DruidDatasource(Model, BaseDatasource):
     cluster_class = DruidCluster
     metric_class = DruidMetric
     column_class = DruidColumn
+    owner_class = security_manager.user_model
 
     baselink = 'druiddatasourcemodelview'
 
@@ -472,11 +425,8 @@ class DruidDatasource(Model, BaseDatasource):
         String(250), ForeignKey('clusters.cluster_name'))
     cluster = relationship(
         'DruidCluster', backref='datasources', foreign_keys=[cluster_name])
-    user_id = Column(Integer, ForeignKey('ab_user.id'))
-    owner = relationship(
-        security_manager.user_model,
-        backref=backref('datasources', cascade='all, delete-orphan'),
-        foreign_keys=[user_id])
+    owners = relationship(owner_class, secondary=druiddatasource_user,
+                          backref='druiddatasources')
     UniqueConstraint('cluster_name', 'datasource_name')
 
     export_fields = (
@@ -530,7 +480,7 @@ class DruidDatasource(Model, BaseDatasource):
     @property
     def link(self):
         name = escape(self.datasource_name)
-        return Markup('<a href="{self.url}">{name}</a>').format(**locals())
+        return Markup(f'<a href="{self.url}">{name}</a>')
 
     @property
     def full_name(self):
@@ -541,7 +491,7 @@ class DruidDatasource(Model, BaseDatasource):
     def time_column_grains(self):
         return {
             'time_columns': [
-                'all', '5 seconds', '30 seconds', '1 minute', '5 minutes'
+                'all', '5 seconds', '30 seconds', '1 minute', '5 minutes',
                 '30 minutes', '1 hour', '6 hour', '1 day', '7 days',
                 'week', 'week_starting_sunday', 'week_ending_saturday',
                 'month', 'quarter', 'year',
@@ -554,9 +504,9 @@ class DruidDatasource(Model, BaseDatasource):
 
     @renders('datasource_name')
     def datasource_link(self):
-        url = '/superset/explore/{obj.type}/{obj.id}/'.format(obj=self)
+        url = f'/superset/explore/{self.type}/{self.id}/'
         name = escape(self.datasource_name)
-        return Markup('<a href="{url}">{name}</a>'.format(**locals()))
+        return Markup(f'<a href="{url}">{name}</a>')
 
     def get_metric_obj(self, metric_name):
         return [
@@ -659,7 +609,7 @@ class DruidDatasource(Model, BaseDatasource):
             datasource = cls(
                 datasource_name=druid_config['name'],
                 cluster=cluster,
-                owner=user,
+                owners=[user],
                 changed_by_fk=user.id,
                 created_by_fk=user.id,
             )
@@ -1201,7 +1151,9 @@ class DruidDatasource(Model, BaseDatasource):
                     pre_qry['aggregations'] = aggs_dict
                     pre_qry['post_aggregations'] = post_aggs_dict
             else:
-                order_by = list(qry['aggregations'].keys())[0]
+                agg_keys = qry['aggregations'].keys()
+                order_by = list(agg_keys)[0] if agg_keys else None
+
             # Limit on the number of timeseries, doing a two-phases query
             pre_qry['granularity'] = 'all'
             pre_qry['threshold'] = min(row_limit,

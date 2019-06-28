@@ -1,7 +1,23 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 import json
 import unittest
+from unittest.mock import Mock
 
-from mock import Mock
 from pydruid.utils.dimensions import MapLookupExtraction, RegexExtraction
 import pydruid.utils.postaggregator as postaggs
 
@@ -218,11 +234,18 @@ class DruidFuncTestCase(unittest.TestCase):
         self.assertIsNone(res)
 
     def test_get_filters_extracts_values_in_quotes(self):
-        filtr = {'col': 'A', 'op': 'in', 'val': ['  "a" ']}
+        filtr = {'col': 'A', 'op': 'in', 'val': ['"a"']}
         col = DruidColumn(column_name='A')
         column_dict = {'A': col}
         res = DruidDatasource.get_filters([filtr], [], column_dict)
         self.assertEqual('a', res.filter['filter']['value'])
+
+    def test_get_filters_keeps_trailing_spaces(self):
+        filtr = {'col': 'A', 'op': 'in', 'val': ['a ']}
+        col = DruidColumn(column_name='A')
+        column_dict = {'A': col}
+        res = DruidDatasource.get_filters([filtr], [], column_dict)
+        self.assertEqual('a ', res.filter['filter']['value'])
 
     def test_get_filters_converts_strings_to_num(self):
         filtr = {'col': 'A', 'op': 'in', 'val': ['6']}

@@ -1,13 +1,31 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import React from 'react';
 import PropTypes from 'prop-types';
 import { FormGroup } from 'react-bootstrap';
 import VirtualizedSelect from 'react-virtualized-select';
-import { SupersetClient } from '@superset-ui/core';
+import { t } from '@superset-ui/translation';
+import { SupersetClient } from '@superset-ui/connection';
 
 import AdhocFilter, { EXPRESSION_TYPES, CLAUSES } from '../AdhocFilter';
 import adhocMetricType from '../propTypes/adhocMetricType';
 import columnType from '../propTypes/columnType';
-import { t } from '../../locales';
 import {
   OPERATORS,
   TABLE_ONLY_OPERATORS,
@@ -177,13 +195,13 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
 
       const controller = new AbortController();
       const { signal } = controller;
-      this.setState({ abortActiveRequest: controller.abort });
+      this.setState({ abortActiveRequest: controller.abort, loading: true });
 
       SupersetClient.get({
         signal,
         endpoint: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
       }).then(({ json }) => {
-        this.setState(() => ({ suggestions: json, abortActiveRequest: null }));
+        this.setState(() => ({ suggestions: json, abortActiveRequest: null, loading: false }));
       });
     }
   }
@@ -272,7 +290,7 @@ export default class AdhocFilterEditPopoverSimpleTabContent extends React.Compon
                 freeForm
                 name="filter-comparator-value"
                 value={adhocFilter.comparator}
-                isLoading={false}
+                isLoading={this.state.loading}
                 choices={this.state.suggestions}
                 onChange={this.onComparatorChange}
                 showHeader={false}

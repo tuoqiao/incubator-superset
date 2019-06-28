@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import moment from 'moment';
 import React from 'react';
 import PropTypes from 'prop-types';
@@ -5,12 +23,12 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Alert } from 'react-bootstrap';
 import Dialog from 'react-bootstrap-dialog';
+import { t } from '@superset-ui/translation';
 
 import shortid from 'shortid';
 import { exportChart } from '../../explore/exploreUtils';
-import * as actions from '../actions';
+import * as actions from '../actions/sqlLab';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
-import { t } from '../../locales';
 import Button from '../../components/Button';
 
 const propTypes = {
@@ -164,30 +182,33 @@ class ExploreResultsButton extends React.PureComponent {
     );
   }
   render() {
+    const allowsSubquery = this.props.database && this.props.database.allows_subquery;
     return (
-      <Button
-        bsSize="small"
-        onClick={this.onClick}
-        disabled={!this.props.database.allows_subquery}
-        tooltip={t('Explore the result set in the data exploration view')}
-      >
+      <React.Fragment>
+        <Button
+          bsSize="small"
+          onClick={this.onClick}
+          disabled={!allowsSubquery}
+          tooltip={t('Explore the result set in the data exploration view')}
+        >
+          <InfoTooltipWithTrigger icon="line-chart" placement="top" label="explore" /> {t('Explore')}
+        </Button>
         <Dialog
           ref={(el) => {
             this.dialog = el;
           }}
         />
-        <InfoTooltipWithTrigger icon="line-chart" placement="top" label="explore" /> {t('Explore')}
-      </Button>
+      </React.Fragment>
     );
   }
 }
 ExploreResultsButton.propTypes = propTypes;
 ExploreResultsButton.defaultProps = defaultProps;
 
-function mapStateToProps({ sqlLab }) {
+function mapStateToProps({ sqlLab, common }) {
   return {
     errorMessage: sqlLab.errorMessage,
-    timeout: sqlLab.common ? sqlLab.common.conf.SUPERSET_WEBSERVER_TIMEOUT : null,
+    timeout: common.conf ? common.conf.SUPERSET_WEBSERVER_TIMEOUT : null,
   };
 }
 
