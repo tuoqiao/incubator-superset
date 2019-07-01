@@ -77,7 +77,8 @@ setup(
         'croniter>=0.3.28',
         'cryptography>=2.4.2',
         'flask>=1.0.0, <2.0.0',
-        'flask-appbuilder>=2.0.0, <2.3.0',
+        'flask-appbuilder @ git+git://github.com/dpgaspar/Flask-AppBuilder' +
+        '@93d3583192667e11f121a52d9c9a1342a2454d4a#egg=flask-appbuilder',
         'flask-caching',
         'flask-compress',
         'flask-talisman',
