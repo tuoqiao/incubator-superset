@@ -48,7 +48,6 @@ from superset import app, db, db_engine_specs, security_manager
 from superset.connectors.connector_registry import ConnectorRegistry
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportMixin
-from superset.models.tags import ChartUpdater, DashboardUpdater, FavStarUpdater
 from superset.models.user_attributes import UserAttribute
 from superset.utils import (
     cache as cache_util,
@@ -1275,11 +1274,11 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
 
 
 # events for updating tags
-sqla.event.listen(Slice, 'after_insert', ChartUpdater.after_insert)
-sqla.event.listen(Slice, 'after_update', ChartUpdater.after_update)
-sqla.event.listen(Slice, 'after_delete', ChartUpdater.after_delete)
-sqla.event.listen(Dashboard, 'after_insert', DashboardUpdater.after_insert)
-sqla.event.listen(Dashboard, 'after_update', DashboardUpdater.after_update)
-sqla.event.listen(Dashboard, 'after_delete', DashboardUpdater.after_delete)
-sqla.event.listen(FavStar, 'after_insert', FavStarUpdater.after_insert)
-sqla.event.listen(FavStar, 'after_delete', FavStarUpdater.after_delete)
+# sqla.event.listen(Slice, 'after_insert', ChartUpdater.after_insert)
+# sqla.event.listen(Slice, 'after_update', ChartUpdater.after_update)
+# sqla.event.listen(Slice, 'after_delete', ChartUpdater.after_delete)
+# sqla.event.listen(Dashboard, 'after_insert', DashboardUpdater.after_insert)
+# sqla.event.listen(Dashboard, 'after_update', DashboardUpdater.after_update)
+# sqla.event.listen(Dashboard, 'after_delete', DashboardUpdater.after_delete)
+# sqla.event.listen(FavStar, 'after_insert', FavStarUpdater.after_insert)
+# sqla.event.listen(FavStar, 'after_delete', FavStarUpdater.after_delete)
