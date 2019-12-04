@@ -29,4 +29,12 @@ export default {
       ],
     },
   ],
+  sectionOverrides: {
+    druidTimeSeries: {
+      controlSetRows: [],
+    },
+    sqlaTimeSeries: {
+      controlSetRows: [],
+    },
+  },
 };

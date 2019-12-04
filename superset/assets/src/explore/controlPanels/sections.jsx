@@ -23,10 +23,7 @@ export const druidTimeSeries = {
   label: t('Time'),
   expanded: true,
   description: t('Time related form attributes'),
-  controlSetRows: [
-    ['granularity', 'druid_time_origin'],
-    ['time_range'],
-  ],
+  controlSetRows: [['time_range']],
 };
 
 export const datasourceAndVizType = {
@@ -50,10 +47,7 @@ export const sqlaTimeSeries = {
   label: t('Time'),
   description: t('Time related form attributes'),
   expanded: true,
-  controlSetRows: [
-    ['granularity_sqla', 'time_grain_sqla'],
-    ['time_range'],
-  ],
+  controlSetRows: [['granularity_sqla'], ['time_range']],
 };
 
 export const filters = {
