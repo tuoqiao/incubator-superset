@@ -1040,7 +1040,6 @@ class Database(
     def select_star(  # pylint: disable=too-many-arguments
         self,
         table_name: str,
-        sql: Optional[str] = None,
         schema: Optional[str] = None,
         limit: int = 100,
         show_cols: bool = False,
@@ -1055,7 +1054,6 @@ class Database(
         return self.db_engine_spec.select_star(
             self,
             table_name,
-            sql=sql,
             schema=schema,
             engine=eng,
             limit=limit,
