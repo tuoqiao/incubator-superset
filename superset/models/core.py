@@ -1020,7 +1020,6 @@ class Database(Model, AuditMixinNullable, ImportMixin):
     def select_star(
         self,
         table_name: str,
-        sql: Optional[str] = None,
         schema: Optional[str] = None,
         limit: int = 100,
         show_cols: bool = False,
@@ -1035,7 +1034,6 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         return self.db_engine_spec.select_star(
             self,
             table_name,
-            sql=sql,
             schema=schema,
             engine=eng,
             limit=limit,
