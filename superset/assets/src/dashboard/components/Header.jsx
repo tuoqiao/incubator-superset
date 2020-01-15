@@ -44,7 +44,6 @@ import {
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
   LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
 } from '../../logger/LogUtils';
-import PropertiesModal from './PropertiesModal';
 
 const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
@@ -87,8 +86,6 @@ const propTypes = {
   maxUndoHistoryToast: PropTypes.func.isRequired,
   refreshFrequency: PropTypes.number.isRequired,
   setRefreshFrequency: PropTypes.func.isRequired,
-  dashboardInfoChanged: PropTypes.func.isRequired,
-  dashboardTitleChanged: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -106,7 +103,6 @@ class Header extends React.PureComponent {
     this.state = {
       didNotifyMaxUndoHistoryToast: false,
       emphasizeUndo: false,
-      showingPropertiesModal: false,
     };
 
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -120,8 +116,6 @@ class Header extends React.PureComponent {
     this.forceRefresh = this.forceRefresh.bind(this);
     this.startPeriodicRender = this.startPeriodicRender.bind(this);
     this.overwriteDashboard = this.overwriteDashboard.bind(this);
-    this.showPropertiesModal = this.showPropertiesModal.bind(this);
-    this.hidePropertiesModal = this.hidePropertiesModal.bind(this);
   }
 
   componentDidMount() {
@@ -260,14 +254,6 @@ class Header extends React.PureComponent {
 
       this.props.onSave(data, dashboardInfo.id, SAVE_TYPE_OVERWRITE);
     }
-  }
-
-  showPropertiesModal() {
-    this.setState({ showingPropertiesModal: true });
-  }
-
-  hidePropertiesModal() {
-    this.setState({ showingPropertiesModal: false });
   }
 
   render() {
@@ -419,27 +405,6 @@ class Header extends React.PureComponent {
             </Button>
           )}
 
-          {this.state.showingPropertiesModal && (
-            <PropertiesModal
-              dashboardTitle={dashboardTitle}
-              dashboardInfo={dashboardInfo}
-              show={this.state.showingPropertiesModal}
-              onHide={this.hidePropertiesModal}
-              onDashboardSave={updates => {
-                this.props.dashboardInfoChanged({
-                  slug: updates.slug,
-                  metadata: JSON.parse(updates.jsonMetadata),
-                });
-                this.props.dashboardTitleChanged(updates.title);
-                history.pushState(
-                  { event: 'dashboard_properties_changed' },
-                  '',
-                  `/superset/dashboard/${updates.slug}/`,
-                );
-              }}
-            />
-          )}
-
           <HeaderActionsDropdown
             addSuccessToast={this.props.addSuccessToast}
             addDangerToast={this.props.addDangerToast}
@@ -462,7 +427,6 @@ class Header extends React.PureComponent {
             userCanEdit={userCanEdit}
             userCanSave={userCanSaveAs}
             isLoading={isLoading}
-            showPropertiesModal={this.showPropertiesModal}
           />
         </div>
       </div>

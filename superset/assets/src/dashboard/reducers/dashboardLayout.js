@@ -20,7 +20,6 @@ import {
   DASHBOARD_ROOT_ID,
   DASHBOARD_GRID_ID,
   NEW_COMPONENTS_SOURCE_ID,
-  DASHBOARD_HEADER_ID,
 } from '../util/constants';
 import componentIsResizable from '../util/componentIsResizable';
 import findParentId from '../util/findParentId';
@@ -40,7 +39,6 @@ import {
   MOVE_COMPONENT,
   CREATE_TOP_LEVEL_TABS,
   DELETE_TOP_LEVEL_TABS,
-  DASHBOARD_TITLE_CHANGED,
 } from '../actions/dashboardLayout';
 
 const actionHandlers = {
@@ -273,19 +271,6 @@ const actionHandlers = {
 
     return {
       ...nextState,
-    };
-  },
-
-  [DASHBOARD_TITLE_CHANGED](state, action) {
-    return {
-      ...state,
-      [DASHBOARD_HEADER_ID]: {
-        ...state[DASHBOARD_HEADER_ID],
-        meta: {
-          ...state[DASHBOARD_HEADER_ID].meta,
-          text: action.text,
-        },
-      },
     };
   },
 };

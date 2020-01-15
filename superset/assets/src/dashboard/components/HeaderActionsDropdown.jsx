@@ -53,7 +53,6 @@ const propTypes = {
   layout: PropTypes.object.isRequired,
   expandedSlices: PropTypes.object.isRequired,
   onSave: PropTypes.func.isRequired,
-  showPropertiesModal: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -191,8 +190,8 @@ class HeaderActionsDropdown extends React.PureComponent {
         />
 
         {editMode && (
-          <MenuItem onClick={this.props.showPropertiesModal}>
-            {t('Edit dashboard properties')}
+          <MenuItem target="_blank" href={`/dashboard/edit/${dashboardId}`}>
+            {t('Edit dashboard metadata')}
           </MenuItem>
         )}
 
