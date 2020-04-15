@@ -42,8 +42,7 @@ class CreateDashboardCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
-            dashboard = DashboardDAO.create(self._properties, commit=False)
-            dashboard = DashboardDAO.update_charts_owners(dashboard, commit=True)
+            dashboard = DashboardDAO.create(self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
             raise DashboardCreateFailedError()

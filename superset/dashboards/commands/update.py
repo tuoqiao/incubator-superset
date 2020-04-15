@@ -49,8 +49,7 @@ class UpdateDashboardCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
-            dashboard = DashboardDAO.update(self._model, self._properties, commit=False)
-            dashboard = DashboardDAO.update_charts_owners(dashboard, commit=True)
+            dashboard = DashboardDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
             raise DashboardUpdateFailedError()
