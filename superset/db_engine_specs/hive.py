@@ -163,10 +163,11 @@ class HiveEngineSpec(PrestoEngineSpec):
             bucket_path,
             os.path.join(upload_prefix, table.table, os.path.basename(filename)),
         )
-        # TODO(bkyryliuk): support other delimiters
+
         sql = f"""CREATE TABLE {str(table)} ( {schema_definition} )
-            ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS
-            TEXTFILE LOCATION '{location}'
+            ROW FORMAT SERDE 'org.apache.hadoop.hive.contrib.serde2.MultiDelimitSerDe'
+            WITH SERDEPROPERTIES ("field.delim"="{csv_to_df_kwargs['sep']}")
+            STORED AS TEXTFILE LOCATION '{location}'
             tblproperties ('skip.header.line.count'='1')"""
         engine = cls.get_engine(database)
         engine.execute(sql)
