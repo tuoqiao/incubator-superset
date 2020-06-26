@@ -19,7 +19,6 @@
 import React from 'react';
 import cx from 'classnames';
 import { TableInstance } from 'react-table';
-import styled from '@superset-ui/style';
 import Icon from 'src/components/Icon';
 
 interface Props {
@@ -30,56 +29,6 @@ interface Props {
   rows: TableInstance['rows'];
   loading: boolean;
 }
-
-const Table = styled.table`
-  th {
-    &.xs {
-      min-width: 25px;
-    }
-    &.sm {
-      min-width: 50px;
-    }
-    &.md {
-      min-width: 75px;
-    }
-    &.lg {
-      min-width: 100px;
-    }
-    &.xl {
-      min-width: 150px;
-    }
-    &.xxl {
-      min-width: 200px;
-    }
-
-    svg {
-      display: inline-block;
-      top: 6px;
-      position: relative;
-    }
-  }
-  td {
-    &.xs {
-      width: 25px;
-    }
-    &.sm {
-      width: 50px;
-    }
-    &.md {
-      width: 75px;
-    }
-    &.lg {
-      width: 100px;
-    }
-    &.xl {
-      width: 150px;
-    }
-    &.xxl {
-      width: 200px;
-    }
-  }
-`;
-
 export default function TableCollection({
   getTableProps,
   getTableBodyProps,
@@ -89,31 +38,29 @@ export default function TableCollection({
   loading,
 }: Props) {
   return (
-    <Table {...getTableProps()} className="table table-hover">
+    <table {...getTableProps()} className="table table-hover">
       <thead>
         {headerGroups.map(headerGroup => (
           <tr {...headerGroup.getHeaderGroupProps()}>
             {headerGroup.headers.map(column => {
               let sortIcon = <Icon name="sort" />;
-              if (column.isSorted && column.isSortedDesc) {
+              if (column.isSortedDesc) {
                 sortIcon = <Icon name="sort-desc" />;
-              } else if (column.isSorted && !column.isSortedDesc) {
+              } else if (!column.isSortedDesc) {
                 sortIcon = <Icon name="sort-asc" />;
               }
+
               return column.hidden ? null : (
                 <th
                   {...column.getHeaderProps(
                     column.sortable ? column.getSortByToggleProps() : {},
                   )}
                   data-test="sort-header"
-                  className={cx({
-                    [column.size || '']: column.size,
-                  })}
                 >
-                  <span>
-                    {column.render('Header')}
-                    {column.sortable && sortIcon}
-                  </span>
+                  <span>{column.render('Header')}</span>
+                  {column.sortable && (
+                    <span className="sort-icon">{sortIcon}</span>
+                  )}
                 </th>
               );
             })}
@@ -127,6 +74,7 @@ export default function TableCollection({
             <tr
               {...row.getRowProps()}
               className={cx({
+                'table-row-loader': loading,
                 'table-row-selected': row.isSelected,
               })}
               onMouseEnter={() => row.setState && row.setState({ hover: true })}
@@ -138,18 +86,14 @@ export default function TableCollection({
                 if (cell.column.hidden) return null;
 
                 const columnCellProps = cell.column.cellProps || {};
+
                 return (
                   <td
-                    className={cx('table-cell', {
-                      'table-cell-loader': loading,
-                      [cell.column.size || '']: cell.column.size,
-                    })}
+                    className="table-cell"
                     {...cell.getCellProps()}
                     {...columnCellProps}
                   >
-                    <span className={cx({ 'loading-bar': loading })}>
-                      <span>{cell.render('Cell')}</span>
-                    </span>
+                    <span>{cell.render('Cell')}</span>
                   </td>
                 );
               })}
@@ -157,6 +101,6 @@ export default function TableCollection({
           );
         })}
       </tbody>
-    </Table>
+    </table>
   );
 }
