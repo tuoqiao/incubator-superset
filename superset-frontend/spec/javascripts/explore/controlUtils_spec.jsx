@@ -27,6 +27,7 @@ import {
   getFormDataFromControls,
   applyMapStateToPropsToControl,
   getAllControlsState,
+  getControlsState,
 } from 'src/explore/controlUtils';
 
 describe('controlUtils', () => {
@@ -247,6 +248,14 @@ describe('controlUtils', () => {
       };
       const control = getControlState('metrics', 'table', stateWithCount);
       expect(control.default).toEqual(['count']);
+    });
+
+    it('should not apply mapStateToProps when initializing', () => {
+      const control = getControlState('metrics', 'table', {
+        ...state,
+        isInitializing: true,
+      });
+      expect(control.default).toEqual(null);
     });
   });
 
