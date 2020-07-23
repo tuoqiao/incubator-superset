@@ -801,7 +801,7 @@ class ChartDataQueryObjectSchema(Schema):
         fields.Dict(),
         description="HAVING filters to be added to legacy Druid datasource queries. "
         "This field is deprecated and should be passed to `extras` "
-        "as `having_druid`.",
+        "as `filters_druid`.",
         deprecated=True,
     )
 
