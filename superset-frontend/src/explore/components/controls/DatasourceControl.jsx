@@ -99,6 +99,8 @@ class DatasourceControl extends React.PureComponent {
 
   renderDatasource() {
     const { datasource } = this.props;
+    const { showDatasource } = this.state;
+    const maxNumColumns = 30;
     return (
       <div className="m-t-10">
         <Well className="m-t-0">
@@ -108,24 +110,32 @@ class DatasourceControl extends React.PureComponent {
             </Label>
             {` ${datasource.database.name} `}
           </div>
-          <Row className="datasource-container">
-            <Col md={6}>
-              <strong>Columns</strong>
-              {datasource.columns.map(col => (
-                <div key={col.column_name}>
-                  <ColumnOption showType column={col} />
-                </div>
-              ))}
-            </Col>
-            <Col md={6}>
-              <strong>Metrics</strong>
-              {datasource.metrics.map(m => (
-                <div key={m.metric_name}>
-                  <MetricOption metric={m} showType />
-                </div>
-              ))}
-            </Col>
-          </Row>
+          {showDatasource && (
+            <Row className="datasource-container">
+              <Col md={6}>
+                <strong>Columns</strong>
+                {datasource.columns.slice(0, maxNumColumns).map(col => (
+                  <div key={col.column_name}>
+                    <ColumnOption showType column={col} />
+                  </div>
+                ))}
+                {datasource.columns.length > maxNumColumns && (
+                  <div key="too-many-columns">...</div>
+                )}
+              </Col>
+              <Col md={6}>
+                <strong>Metrics</strong>
+                {datasource.metrics.slice(0, maxNumColumns).map(m => (
+                  <div key={m.metric_name}>
+                    <MetricOption metric={m} showType />
+                  </div>
+                ))}
+                {datasource.columns.length > maxNumColumns && (
+                  <div key="too-many-metrics">...</div>
+                )}
+              </Col>
+            </Row>
+          )}
         </Well>
       </div>
     );
@@ -134,6 +144,7 @@ class DatasourceControl extends React.PureComponent {
   render() {
     const { showChangeDatasourceModal, showEditDatasourceModal } = this.state;
     const { datasource, onChange, value } = this.props;
+    const { showDatasource } = this.state;
     return (
       <div>
         <ControlHeader {...this.props} />
@@ -183,28 +194,30 @@ class DatasourceControl extends React.PureComponent {
                 aria-label="Toggle datasource visibility"
                 tabIndex={0}
                 className={`fa fa-${
-                  this.state.showDatasource ? 'minus' : 'plus'
+                  showDatasource ? 'minus' : 'plus'
                 }-square m-r-5 m-l-5 m-t-4`}
                 onClick={this.toggleShowDatasource}
               />
             </a>
           </OverlayTrigger>
         </div>
-        <Collapse in={this.state.showDatasource}>
-          {this.renderDatasource()}
-        </Collapse>
-        <DatasourceModal
-          datasource={datasource}
-          show={showEditDatasourceModal}
-          onDatasourceSave={this.onDatasourceSave}
-          onHide={this.toggleEditDatasourceModal}
-        />
-        <ChangeDatasourceModal
-          onDatasourceSave={this.onDatasourceSave}
-          onHide={this.toggleChangeDatasourceModal}
-          show={showChangeDatasourceModal}
-          onChange={onChange}
-        />
+        <Collapse in={showDatasource}>{this.renderDatasource()}</Collapse>
+        {showEditDatasourceModal && (
+          <DatasourceModal
+            datasource={datasource}
+            show={showEditDatasourceModal}
+            onDatasourceSave={this.onDatasourceSave}
+            onHide={this.toggleEditDatasourceModal}
+          />
+        )}
+        {showChangeDatasourceModal && (
+          <ChangeDatasourceModal
+            onDatasourceSave={this.onDatasourceSave}
+            onHide={this.toggleChangeDatasourceModal}
+            show={showChangeDatasourceModal}
+            onChange={onChange}
+          />
+        )}
       </div>
     );
   }
