@@ -48,9 +48,7 @@ describe('Datasource control', () => {
     });
 
     // create new metric
-    cy.get('.modal-content').within(() => {
-      cy.get('a[role="tab"]').contains('Metrics').click();
-    });
+    cy.get('a[role="tab"]').contains('Metrics').click();
     cy.get('button').contains('Add Item', { timeout: 10000 }).click();
     cy.get('input[value="<new metric>"]').click();
     cy.get('input[value="<new metric>"]')
@@ -67,9 +65,7 @@ describe('Datasource control', () => {
     // delete metric
     cy.get('#datasource_menu').click();
     cy.get('a').contains('Edit Dataset').click();
-    cy.get('.modal-content').within(() => {
-      cy.get('a[role="tab"]').contains('Metrics').click();
-    });
+    cy.get('a[role="tab"]').contains('Metrics').click();
     cy.get(`input[value="${newMetricName}"]`)
       .closest('tr')
       .find('.fa-trash')
@@ -146,7 +142,7 @@ describe('Time range filter', () => {
       });
     });
     cy.get('#filter-popover button').contains('Ok').click();
-    cy.get('#filter-popover').should('not.be.visible');
+    cy.get('#filter-popover').should('not.exist');
   });
 });
 

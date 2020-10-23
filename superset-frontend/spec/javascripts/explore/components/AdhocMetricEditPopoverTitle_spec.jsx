@@ -22,17 +22,25 @@ import sinon from 'sinon';
 import { shallow } from 'enzyme';
 import { OverlayTrigger } from 'react-bootstrap';
 
+import AdhocMetric from 'src/explore/AdhocMetric';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/AdhocMetricEditPopoverTitle';
+import { AGGREGATES } from 'src/explore/constants';
 
-const title = {
-  label: 'Title',
-  hasCustomLabel: false,
-};
+const columns = [
+  { type: 'VARCHAR(255)', column_name: 'source' },
+  { type: 'VARCHAR(255)', column_name: 'target' },
+  { type: 'DOUBLE', column_name: 'value' },
+];
+
+const sumValueAdhocMetric = new AdhocMetric({
+  column: columns[2],
+  aggregate: AGGREGATES.SUM,
+});
 
 function setup(overrides) {
   const onChange = sinon.spy();
   const props = {
-    title,
+    adhocMetric: sumValueAdhocMetric,
     onChange,
     ...overrides,
   };

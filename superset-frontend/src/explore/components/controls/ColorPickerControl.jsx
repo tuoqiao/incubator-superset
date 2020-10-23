@@ -18,9 +18,9 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { OverlayTrigger, Popover } from 'react-bootstrap';
 import { SketchPicker } from 'react-color';
 import { getCategoricalSchemeRegistry } from '@superset-ui/core';
-import Popover from 'src/common/components/Popover';
 import ControlHeader from '../ControlHeader';
 
 const propTypes = {
@@ -79,13 +79,13 @@ export default class ColorPickerControl extends React.Component {
       .get()
       .colors.filter((s, i) => i < 7);
     return (
-      <div id="filter-popover" className="color-popover">
+      <Popover id="filter-popover" className="color-popover">
         <SketchPicker
           color={this.props.value}
           onChange={this.onChange}
           presetColors={presetColors}
         />
-      </div>
+      </Popover>
     );
   }
 
@@ -98,16 +98,19 @@ export default class ColorPickerControl extends React.Component {
     return (
       <div>
         <ControlHeader {...this.props} />
-        <Popover
+        <OverlayTrigger
+          container={document.body}
           trigger="click"
+          rootClose
+          ref="trigger"
           placement="right"
-          content={this.renderPopover()}
+          overlay={this.renderPopover()}
         >
           <div style={styles.swatch}>
             <div style={styles.checkboard} />
             <div style={colStyle} />
           </div>
-        </Popover>
+        </OverlayTrigger>
       </div>
     );
   }

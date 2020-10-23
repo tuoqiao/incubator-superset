@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import Popover from 'src/common/components/Popover';
+import { Popover, OverlayTrigger } from 'react-bootstrap';
 import { t } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
@@ -89,29 +89,31 @@ class ShareSqlLabQuery extends React.Component {
 
   renderPopover() {
     return (
-      <div id="sqllab-shareurl-popover">
+      <Popover id="sqllab-shareurl-popover">
         <CopyToClipboard
           text={this.state.shortUrl || t('Loading ...')}
           copyNode={
             <i className="fa fa-clipboard" title={t('Copy to clipboard')} />
           }
         />
-      </div>
+      </Popover>
     );
   }
 
   render() {
     return (
-      <Popover
+      <OverlayTrigger
         trigger="click"
         placement="top"
-        onClick={this.getCopyUrl}
-        content={this.renderPopover()}
+        onEnter={this.getCopyUrl}
+        rootClose
+        shouldUpdatePosition
+        overlay={this.renderPopover()}
       >
         <Button buttonSize="small" className="toggleSave">
           <i className="fa fa-share" /> {t('Share')}
         </Button>
-      </Popover>
+      </OverlayTrigger>
     );
   }
 }

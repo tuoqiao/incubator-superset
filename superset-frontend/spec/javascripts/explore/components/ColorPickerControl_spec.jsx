@@ -16,14 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable no-unused-expressions */
 import React from 'react';
 import { shallow } from 'enzyme';
+import { OverlayTrigger } from 'react-bootstrap';
 import { SketchPicker } from 'react-color';
 import {
   CategoricalScheme,
   getCategoricalSchemeRegistry,
 } from '@superset-ui/core';
-import Popover from 'src/common/components/Popover';
+
 import ColorPickerControl from 'src/explore/components/controls/ColorPickerControl';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
@@ -51,7 +53,7 @@ describe('ColorPickerControl', () => {
   it('renders a OverlayTrigger', () => {
     const controlHeader = wrapper.find(ControlHeader);
     expect(controlHeader).toHaveLength(1);
-    expect(wrapper.find(Popover)).toExist();
+    expect(wrapper.find(OverlayTrigger)).toExist();
   });
 
   it('renders a Popover with a SketchPicker', () => {

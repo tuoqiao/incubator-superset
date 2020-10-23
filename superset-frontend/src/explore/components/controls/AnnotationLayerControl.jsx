@@ -18,11 +18,15 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { ListGroup, ListGroupItem } from 'react-bootstrap';
+import {
+  OverlayTrigger,
+  Popover,
+  ListGroup,
+  ListGroupItem,
+} from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { t, withTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import Popover from 'src/common/components/Popover';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { runAnnotationQuery } from 'src/chart/chartAction';
@@ -58,10 +62,8 @@ const defaultProps = {
 class AnnotationLayerControl extends React.PureComponent {
   constructor(props) {
     super(props);
-    this.state = { popoverVisible: false };
     this.addAnnotationLayer = this.addAnnotationLayer.bind(this);
     this.removeAnnotationLayer = this.removeAnnotationLayer.bind(this);
-    this.handleVisibleChange = this.handleVisibleChange.bind(this);
   }
 
   componentDidMount() {
@@ -99,12 +101,6 @@ class AnnotationLayerControl extends React.PureComponent {
     this.props.onChange(annotations);
   }
 
-  handleVisibleChange(visible, popoverKey) {
-    this.setState(prevState => ({
-      popoverVisible: { ...prevState, [popoverKey]: visible },
-    }));
-  }
-
   removeAnnotationLayer(annotation) {
     const annotations = this.props.value
       .slice()
@@ -112,10 +108,18 @@ class AnnotationLayerControl extends React.PureComponent {
     this.props.onChange(annotations);
   }
 
-  renderPopover(parent, popoverKey, annotation, error) {
+  renderPopover(parent, annotation, error) {
     const id = !annotation ? '_new' : annotation.name;
+    const { theme } = this.props;
     return (
-      <div id={`annotation-pop-${id}`} data-test="popover-content">
+      <Popover
+        data-test="annotation-popover"
+        style={{ maxWidth: 'none' }}
+        title={
+          annotation ? t('Edit Annotation Layer') : t('Add Annotation Layer')
+        }
+        id={`annotation-pop-${id}`}
+      >
         <AnnotationLayer
           {...annotation}
           parent={this.refs[parent]}
@@ -124,9 +128,10 @@ class AnnotationLayerControl extends React.PureComponent {
           vizType={this.props.vizType}
           addAnnotationLayer={this.addAnnotationLayer}
           removeAnnotationLayer={this.removeAnnotationLayer}
-          close={() => this.handleVisibleChange(false, popoverKey)}
+          close={() => this.refs[parent].hide()}
+          theme={theme}
         />
-      </div>
+      </Popover>
     );
   }
 
@@ -154,41 +159,34 @@ class AnnotationLayerControl extends React.PureComponent {
 
   render() {
     const annotations = this.props.value.map((anno, i) => (
-      <Popover
+      <OverlayTrigger
         key={i}
         trigger="click"
+        rootClose
+        ref={`overlay-${i}`}
         placement="right"
-        title={t('Edit Annotation Layer')}
-        content={this.renderPopover(
+        overlay={this.renderPopover(
           `overlay-${i}`,
-          i,
           anno,
           this.props.annotationError[anno.name],
         )}
-        visible={this.state.popoverVisible[i]}
-        onVisibleChange={visible => this.handleVisibleChange(visible, i)}
       >
         <ListGroupItem>
           <span>{anno.name}</span>
           <span style={{ float: 'right' }}>{this.renderInfo(anno)}</span>
         </ListGroupItem>
-      </Popover>
+      </OverlayTrigger>
     ));
-
-    const addLayerPopoverKey = 'add';
     return (
       <div>
         <ListGroup>
           {annotations}
-          <Popover
+          <OverlayTrigger
             trigger="click"
+            rootClose
+            ref="overlay-new"
             placement="right"
-            content={this.renderPopover('overlay-new', addLayerPopoverKey)}
-            title={t('Add Annotation Layer')}
-            visible={this.state.popoverVisible[addLayerPopoverKey]}
-            onVisibleChange={visible =>
-              this.handleVisibleChange(visible, addLayerPopoverKey)
-            }
+            overlay={this.renderPopover('overlay-new')}
           >
             <ListGroupItem>
               <i
@@ -197,7 +195,7 @@ class AnnotationLayerControl extends React.PureComponent {
               />{' '}
               &nbsp; {t('Add Annotation Layer')}
             </ListGroupItem>
-          </Popover>
+          </OverlayTrigger>
         </ListGroup>
       </div>
     );

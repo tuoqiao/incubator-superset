@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import Mousetrap from 'mousetrap';
-import Popover from 'src/common/components/Popover';
+import { OverlayTrigger, Popover } from 'react-bootstrap';
 
 const propTypes = {
   hotkeys: PropTypes.arrayOf(
@@ -47,9 +47,9 @@ export default class Hotkeys extends React.PureComponent {
   }
 
   renderPopover() {
-    const { hotkeys } = this.props;
+    const { header, hotkeys } = this.props;
     return (
-      <div id="hotkey-popover" style={{ width: '300px' }}>
+      <Popover id="hotkey-popover" title={header} style={{ width: '300px' }}>
         <table className="table table-condensed">
           <thead>
             <tr>
@@ -68,20 +68,19 @@ export default class Hotkeys extends React.PureComponent {
             ))}
           </tbody>
         </table>
-      </div>
+      </Popover>
     );
   }
 
   render() {
     return (
-      <Popover
-        content={this.renderPopover()}
+      <OverlayTrigger
+        overlay={this.renderPopover()}
         trigger={['hover', 'focus']}
         placement={this.props.placement || 'top'}
-        title={this.props.header}
       >
         <i className="fa fa-keyboard-o fa-lg" />
-      </Popover>
+      </OverlayTrigger>
     );
   }
 }

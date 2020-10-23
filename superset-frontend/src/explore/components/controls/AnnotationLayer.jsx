@@ -26,6 +26,7 @@ import {
   SupersetClient,
   getCategoricalSchemeRegistry,
   getChartMetadataRegistry,
+  ThemeProvider,
   validateNonEmpty,
 } from '@superset-ui/core';
 
@@ -66,6 +67,7 @@ const propTypes = {
   timeColumn: PropTypes.string,
   intervalEndColumn: PropTypes.string,
   vizType: PropTypes.string,
+  theme: PropTypes.object,
 
   error: PropTypes.string,
   colorScheme: PropTypes.string,
@@ -664,6 +666,7 @@ export default class AnnotationLayer extends React.PureComponent {
   render() {
     const { isNew, name, annotationType, sourceType, show } = this.state;
     const isValid = this.isValidForm();
+    const { theme } = this.props;
     const metadata = getChartMetadataRegistry().get(this.props.vizType);
     const supportedAnnotationTypes = metadata
       ? metadata.supportedAnnotationTypes.map(
@@ -673,7 +676,7 @@ export default class AnnotationLayer extends React.PureComponent {
     const supportedSourceTypes = this.getSupportedSourceTypes(annotationType);
 
     return (
-      <>
+      <ThemeProvider theme={theme}>
         {this.props.error && (
           <span style={{ color: 'red' }}>ERROR: {this.props.error}</span>
         )}
@@ -747,7 +750,7 @@ export default class AnnotationLayer extends React.PureComponent {
             </Button>
           </div>
         </div>
-      </>
+      </ThemeProvider>
     );
   }
 }

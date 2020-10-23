@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import Popover from 'src/common/components/Popover';
+import { Popover, OverlayTrigger } from 'react-bootstrap';
 import { decimal2sexagesimal } from 'geolib';
 
 import Label from 'src/components/Label';
@@ -83,9 +83,9 @@ export default class ViewportControl extends React.Component {
 
   renderPopover() {
     return (
-      <div id={`filter-popover-${this.props.name}`}>
+      <Popover id={`filter-popover-${this.props.name}`} title="Viewport">
         {PARAMS.map(ctrl => this.renderTextControl(ctrl))}
-      </div>
+      </Popover>
     );
   }
 
@@ -102,15 +102,16 @@ export default class ViewportControl extends React.Component {
     return (
       <div>
         <ControlHeader {...this.props} />
-        <Popover
+        <OverlayTrigger
           container={document.body}
           trigger="click"
+          rootClose
+          ref="trigger"
           placement="right"
-          content={this.renderPopover()}
-          title="Viewport"
+          overlay={this.renderPopover()}
         >
           <Label className="pointer">{this.renderLabel()}</Label>
-        </Popover>
+        </OverlayTrigger>
       </div>
     );
   }

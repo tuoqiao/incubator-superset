@@ -20,7 +20,7 @@
 import React from 'react';
 import sinon from 'sinon';
 import { styledShallow as shallow } from 'spec/helpers/theming';
-import Popover from 'src/common/components/Popover';
+import { OverlayTrigger } from 'react-bootstrap';
 
 import Label from 'src/components/Label';
 import AdhocFilter, {
@@ -53,15 +53,15 @@ function setup(overrides) {
 describe('AdhocFilterOption', () => {
   it('renders an overlay trigger wrapper for the label', () => {
     const { wrapper } = setup();
-    const overlay = wrapper.find(Popover);
+    const overlay = wrapper.find(OverlayTrigger);
     expect(overlay).toHaveLength(1);
-    expect(overlay.props().defaultVisible).toBe(false);
+    expect(overlay.props().defaultOverlayShown).toBe(false);
     expect(wrapper.find(Label)).toExist();
   });
   it('should open new filter popup by default', () => {
     const { wrapper } = setup({
       adhocFilter: simpleAdhocFilter.duplicateWith({ isNew: true }),
     });
-    expect(wrapper.find(Popover).props().defaultVisible).toBe(true);
+    expect(wrapper.find(OverlayTrigger).props().defaultOverlayShown).toBe(true);
   });
 });

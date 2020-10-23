@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import Popover from 'src/common/components/Popover';
+import { OverlayTrigger } from 'react-bootstrap';
 import { t, withTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 
@@ -48,7 +48,6 @@ class AdhocFilterOption extends React.PureComponent {
     this.onPopoverResize = this.onPopoverResize.bind(this);
     this.onOverlayEntered = this.onOverlayEntered.bind(this);
     this.onOverlayExited = this.onOverlayExited.bind(this);
-    this.handleVisibleChange = this.handleVisibleChange.bind(this);
     this.state = { overlayShown: false };
   }
 
@@ -69,20 +68,12 @@ class AdhocFilterOption extends React.PureComponent {
   }
 
   closeFilterEditOverlay() {
-    this.setState({ overlayShown: false });
-  }
-
-  handleVisibleChange(visible) {
-    if (visible) {
-      this.onOverlayEntered();
-    } else {
-      this.onOverlayExited();
-    }
+    this.refs.overlay.hide();
   }
 
   render() {
-    const { adhocFilter } = this.props;
-    const content = (
+    const { adhocFilter, theme } = this.props;
+    const overlay = (
       <AdhocFilterEditPopover
         onResize={this.onPopoverResize}
         adhocFilter={adhocFilter}
@@ -91,10 +82,11 @@ class AdhocFilterOption extends React.PureComponent {
         options={this.props.options}
         datasource={this.props.datasource}
         partitionColumn={this.props.partitionColumn}
+        theme={theme}
       />
     );
     return (
-      <div role="button" tabIndex={0} onMouseDown={e => e.stopPropagation()}>
+      <div onMouseDownCapture={e => e.stopPropagation()}>
         {adhocFilter.isExtra && (
           <InfoTooltipWithTrigger
             icon="exclamation-triangle"
@@ -106,14 +98,17 @@ class AdhocFilterOption extends React.PureComponent {
               `)}
           />
         )}
-        <Popover
+        <OverlayTrigger
+          ref="overlay"
           placement="right"
           trigger="click"
           disabled
-          content={content}
-          defaultVisible={adhocFilter.isNew}
-          visible={this.state.overlayShown}
-          onVisibleChange={this.handleVisibleChange}
+          overlay={overlay}
+          rootClose
+          shouldUpdatePosition
+          defaultOverlayShown={adhocFilter.isNew}
+          onEntered={this.onOverlayEntered}
+          onExited={this.onOverlayExited}
         >
           <Label className="option-label adhoc-option adhoc-filter-option">
             {adhocFilter.getDefaultLabel()}
@@ -123,7 +118,7 @@ class AdhocFilterOption extends React.PureComponent {
               } adhoc-label-arrow`}
             />
           </Label>
-        </Popover>
+        </OverlayTrigger>
       </div>
     );
   }
