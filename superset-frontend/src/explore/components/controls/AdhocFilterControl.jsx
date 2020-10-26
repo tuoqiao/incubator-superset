@@ -47,6 +47,7 @@ const propTypes = {
       PropTypes.oneOfType([PropTypes.string, adhocMetricType]),
     ),
   }),
+  isLoading: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -266,6 +267,7 @@ export default class AdhocFilterControl extends React.Component {
         <ControlHeader {...this.props} />
         <OnPasteSelect
           isMulti
+          isLoading={this.props.isLoading}
           name={`select-${this.props.name}`}
           placeholder={t('choose a column or metric')}
           options={this.state.options}
